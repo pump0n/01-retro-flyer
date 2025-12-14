@@ -390,9 +390,7 @@ function handleStartScreenTouch(e) {
         e.preventDefault();
         e.stopPropagation();
         handleInput();
-        if (tg && tg.HapticFeedback) {
-            tg.HapticFeedback.impactOccurred('light');
-        }
+        // Вибрация убрана при тапах
     }
 }
 
@@ -441,9 +439,7 @@ document.addEventListener('touchstart', function(e) {
             !e.target.closest('.status-bar') && !e.target.closest('.audio-control')) {
             e.preventDefault();
             handleInput();
-            if (tg && tg.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred('light');
-            }
+            // Вибрация убрана при тапах
         }
     }
 }, { passive: false });
@@ -455,9 +451,7 @@ document.addEventListener('touchend', function(e) {
             !e.target.closest('.status-bar') && !e.target.closest('.audio-control')) {
             e.preventDefault();
             handleInput();
-            if (tg && tg.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred('light');
-            }
+            // Вибрация убрана при тапах
         }
     }
 }, { passive: false });
@@ -556,16 +550,12 @@ function handleTouchEnd(e) {
             
             if (touchDuration < 300 && touchDistance < 50) {
                 handleInput();
-                if (tg && tg.HapticFeedback) {
-                    tg.HapticFeedback.impactOccurred('light');
-                }
+                // Вибрация убрана при тапах
             }
         } else {
             // Если игра еще не началась - обрабатываем любое касание
             handleInput();
-            if (tg && tg.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred('light');
-            }
+            // Вибрация убрана при тапах
         }
     }
 }
@@ -708,43 +698,40 @@ function addPipe() {
             });
             lastPipeX = canvasWidth;
             
-            // Добавляем монетку между трубами (всегда)
+            // Добавляем монетку между трубами (всегда, в центре зазора)
             coinsList.push({
                 x: canvasWidth + pipeWidth / 2,
-                y: topHeight + gap / 2 + (Math.random() - 0.5) * (gap * 0.4), // Немного случайности, но в пределах зазора
+                y: topHeight + gap / 2,
                 collected: false,
                 size: 24,
                 value: 1
             });
         }
         
-        // Добавляем случайные монетки в труднодоступных местах (не между трубами)
-        if (Math.random() > 0.7) {
+        // Добавляем 1-2 монетки в труднодоступных местах (редко, не между трубами)
+        const difficultCoinsCount = Math.random() > 0.85 ? (Math.random() > 0.5 ? 2 : 1) : 0;
+        for (let i = 0; i < difficultCoinsCount; i++) {
             const canvasHeight = canvas._height || canvas.height / (window.devicePixelRatio || 1);
             const fgHeight = fg.naturalHeight || fg.height || 112;
-            const safeZone = 30;
+            const safeZone = 20;
             
             // Размещаем монетки в труднодоступных местах:
             // 1. Очень близко к верху (труднодоступно)
             // 2. Очень близко к низу (труднодоступно)
-            // 3. В узких местах между трубами других пар
             
             const coinType = Math.random();
             let coinY;
             
-            if (coinType < 0.4) {
+            if (coinType < 0.5) {
                 // Очень близко к верху
-                coinY = safeZone + Math.random() * 40;
-            } else if (coinType < 0.8) {
-                // Очень близко к низу
-                coinY = canvasHeight - fgHeight - safeZone - 40 + Math.random() * 40;
+                coinY = safeZone + Math.random() * 30;
             } else {
-                // В средних труднодоступных местах
-                coinY = safeZone + 100 + Math.random() * (canvasHeight - fgHeight - safeZone * 2 - 200);
+                // Очень близко к низу
+                coinY = canvasHeight - fgHeight - safeZone - 30 + Math.random() * 30;
             }
             
             coinsList.push({
-                x: canvasWidth + 50 + Math.random() * 150,
+                x: canvasWidth + 100 + Math.random() * 200 + i * 50,
                 y: coinY,
                 collected: false,
                 size: 28,
@@ -842,18 +829,14 @@ function drawPipes() {
     
     pipes.forEach(pipe => {
         // Верхняя труба - от верха экрана (y=0) до pipe.top
-        // Используем pipeUp БЕЗ переворота - рисуем сверху вниз
+        // pipeUp: шапка внизу (у зазора), тело сверху вниз
         const topPipeHeight = pipe.top;
         if (topPipeHeight > pipeHeadHeight) {
             const topPipeBodyHeight = topPipeHeight - pipeHeadHeight;
             
-            // Рисуем шапку верхней трубы вверху (y=0)
-            ctx.drawImage(pipeUp, 0, 0, pipeWidth, pipeHeadHeight,
-                         pipe.x, 0, pipeWidth, pipeHeadHeight);
-            
-            // Рисуем тело верхней трубы от шапки до pipe.top
+            // Рисуем тело верхней трубы от верха до шапки
             // Тайлим тело трубы если нужно
-            let bodyY = pipeHeadHeight;
+            let bodyY = 0;
             let remainingHeight = topPipeBodyHeight;
             while (remainingHeight > 0) {
                 const drawHeight = Math.min(remainingHeight, pipeBodySourceHeight);
@@ -862,18 +845,25 @@ function drawPipes() {
                 bodyY += drawHeight;
                 remainingHeight -= drawHeight;
             }
+            
+            // Рисуем шапку верхней трубы внизу (у зазора, перед gap)
+            ctx.drawImage(pipeUp, 0, 0, pipeWidth, pipeHeadHeight,
+                         pipe.x, pipe.top - pipeHeadHeight, pipeWidth, pipeHeadHeight);
         }
         
         // Нижняя труба - от pipe.top + gap до земли
-        // Используем pipeBottom БЕЗ переворота - рисуем снизу вверх
+        // pipeBottom: шапка вверху (у зазора), тело снизу вверх
         const bottomPipeY = pipe.top + gap;
         const bottomPipeHeight = groundY - bottomPipeY;
         if (bottomPipeHeight > pipeHeadHeight && bottomPipeY < groundY) {
-            const bottomPipeBodyHeight = bottomPipeHeight - pipeHeadHeight;
+            // Рисуем шапку нижней трубы вверху (у зазора, после gap)
+            ctx.drawImage(pipeBottom, 0, 0, pipeWidth, pipeHeadHeight,
+                         pipe.x, bottomPipeY, pipeWidth, pipeHeadHeight);
             
-            // Рисуем тело нижней трубы от gap до земли (без шапки)
+            const bottomPipeBodyHeight = bottomPipeHeight - pipeHeadHeight;
+            // Рисуем тело нижней трубы от шапки до земли
             // Тайлим тело трубы если нужно
-            let bodyY = bottomPipeY;
+            let bodyY = bottomPipeY + pipeHeadHeight;
             let remainingHeight = bottomPipeBodyHeight;
             while (remainingHeight > 0) {
                 const drawHeight = Math.min(remainingHeight, pipeBodySourceHeight);
@@ -882,10 +872,6 @@ function drawPipes() {
                 bodyY += drawHeight;
                 remainingHeight -= drawHeight;
             }
-            
-            // Рисуем шапку нижней трубы внизу (у земли)
-            ctx.drawImage(pipeBottom, 0, 0, pipeWidth, pipeHeadHeight,
-                         pipe.x, groundY - pipeHeadHeight, pipeWidth, pipeHeadHeight);
         }
     });
 }
@@ -945,9 +931,6 @@ let cachedGroundY = 0;
 
 function gameLoop(currentTime = performance.now()) {
     if (!gameActive) return;
-    
-    // Управление FPS для плавности (упрощенная версия без строгого ограничения)
-    const deltaTime = currentTime - lastTime;
     
     // Обновляем кэш размеров canvas (только при необходимости)
     if (cachedCanvasWidth === 0 || frame % 60 === 0) {
@@ -1098,6 +1081,11 @@ function updateCoins() {
                 coinsEarned += coinValue;
                 totalCoins += coinValue;
                 coinsCountElement.textContent = totalCoins;
+                
+                // Вибрация при сборе монетки
+                if (tg && tg.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred('medium');
+                }
                 
                 // Воспроизводим звук асинхронно
                 if (isSoundOn) {
