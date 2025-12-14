@@ -136,16 +136,49 @@ resources.forEach(res => {
     };
 });
 
-// Resize canvas
+// Resize canvas с учетом мобильных устройств
 function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Получаем реальные размеры экрана
+    const width = window.innerWidth || document.documentElement.clientWidth || window.screen.width;
+    const height = window.innerHeight || document.documentElement.clientHeight || window.screen.height;
+    
+    // Устанавливаем CSS размеры
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    
+    // Устанавливаем правильное разрешение для retina дисплеев
+    const dpr = window.devicePixelRatio || 1;
+    
+    // Устанавливаем внутренние размеры canvas с учетом DPR
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    
+    // Масштабируем контекст для правильного отображения
+    if (dpr > 1) {
+        ctx.scale(dpr, dpr);
+    }
+    
+    // Сохраняем реальные размеры для использования в игре
+    canvas._width = width;
+    canvas._height = height;
+}
+
+// Инициализация canvas при загрузке
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', resizeCanvas);
+} else {
+    resizeCanvas();
 }
 window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+window.addEventListener('orientationchange', () => {
+    setTimeout(resizeCanvas, 100);
+});
 
 // Функция инициализации игры
 function initGame() {
+    // Убеждаемся, что canvas правильно инициализирован
+    resizeCanvas();
+    
     // Скрыть экран загрузки
     loadingScreen.style.opacity = '0';
     setTimeout(() => {
@@ -161,6 +194,23 @@ function initGame() {
     initAchievements();
     initReferral();
     initLeaderboard();
+    
+    // Для мобильных устройств - предотвращаем зум при двойном тапе
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function(event) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, false);
+    
+    // Предотвращаем контекстное меню на долгое нажатие
+    document.addEventListener('contextmenu', function(e) {
+        if (gameActive) {
+            e.preventDefault();
+        }
+    });
 }
 
 // Загрузка данных игры
@@ -258,9 +308,17 @@ function showMainMenu() {
     startScreen.classList.remove('active');
 }
 
-// Управление игрой
-document.addEventListener('touchstart', handleTouch, { passive: false });
-document.addEventListener('click', handleClick);
+// Управление игрой с улучшенной поддержкой мобильных устройств
+let touchStartY = 0;
+let touchStartTime = 0;
+
+// Touch события для мобильных устройств
+canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+// Клики для десктопа
+canvas.addEventListener('click', handleClick);
 document.addEventListener('keydown', handleKey);
 
 function handleKey(e) {
@@ -271,15 +329,66 @@ function handleKey(e) {
 }
 
 function handleClick(e) {
-    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+    // Игнорируем клики по кнопкам и другим элементам
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || 
+        e.target.closest('.menu') || e.target.closest('.status-bar') ||
+        e.target.closest('.audio-control')) {
+        return;
+    }
     e.preventDefault();
+    e.stopPropagation();
     handleInput();
 }
 
-function handleTouch(e) {
-    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+function handleTouchStart(e) {
+    // Игнорируем touch по меню и кнопкам
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' ||
+        e.target.closest('.menu') || e.target.closest('.status-bar') ||
+        e.target.closest('.audio-control')) {
+        return;
+    }
+    
     e.preventDefault();
-    handleInput();
+    e.stopPropagation();
+    
+    const touch = e.touches[0];
+    touchStartY = touch.clientY;
+    touchStartTime = Date.now();
+}
+
+function handleTouchEnd(e) {
+    // Игнорируем touch по меню и кнопкам
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' ||
+        e.target.closest('.menu') || e.target.closest('.status-bar') ||
+        e.target.closest('.audio-control')) {
+        return;
+    }
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const touch = e.changedTouches[0];
+    const touchEndY = touch.clientY;
+    const touchDuration = Date.now() - touchStartTime;
+    const touchDistance = Math.abs(touchEndY - touchStartY);
+    
+    // Обрабатываем только быстрые касания (не свайпы)
+    if (touchDuration < 300 && touchDistance < 50) {
+        handleInput();
+        
+        // Тактильная обратная связь для мобильных
+        if (tg && tg.HapticFeedback) {
+            tg.HapticFeedback.impactOccurred('light');
+        }
+    }
+}
+
+function handleTouchMove(e) {
+    // Разрешаем прокрутку только если не в игре
+    if (!gameActive) {
+        return;
+    }
+    e.preventDefault();
 }
 
 function handleInput() {
@@ -289,12 +398,12 @@ function handleInput() {
     } else {
         jump();
     }
-    if (tg && tg.HapticFeedback) {
-        tg.HapticFeedback.impactOccurred('light');
-    }
 }
 
 function startGame() {
+    // Убеждаемся, что canvas правильно инициализирован
+    resizeCanvas();
+    
     // Скрыть все меню
     mainMenu.classList.remove('active');
     gameOverMenu.classList.remove('active');
@@ -306,8 +415,12 @@ function startGame() {
     coinsEarned = 0;
     pipes = [];
     coinsList = [];
-    birdX = canvas.width * 0.2;
-    birdY = canvas.height / 2;
+    
+    // Правильная инициализация позиции птицы с учетом размеров canvas
+    const canvasWidth = canvas._width || canvas.width / (window.devicePixelRatio || 1);
+    const canvasHeight = canvas._height || canvas.height / (window.devicePixelRatio || 1);
+    birdX = canvasWidth * 0.2;
+    birdY = canvasHeight / 2;
     velocity = 0;
     gameActive = true;
     gameStarted = false;
@@ -347,19 +460,32 @@ function jump() {
 }
 
 function addPipe() {
-    const minTop = 60;
-    const maxTop = canvas.height - fg.height - gap - 80;
+    // Получаем реальные размеры canvas
+    const canvasWidth = canvas._width || canvas.width / (window.devicePixelRatio || 1);
+    const canvasHeight = canvas._height || canvas.height / (window.devicePixelRatio || 1);
+    
+    const fgHeight = fg.height || 112;
+    const pipeUpHeight = pipeUp.height || 242;
+    const minTop = 100; // Минимальная высота верхней трубы от верха
+    const maxTop = canvasHeight - fgHeight - gap - 100; // Максимальная высота с учетом земли
+    
+    // Убеждаемся, что есть место для трубы
+    if (maxTop <= minTop) {
+        console.warn('Not enough space for pipes');
+        return;
+    }
+    
     const topHeight = Math.floor(Math.random() * (maxTop - minTop)) + minTop;
     
     pipes.push({
-        x: canvas.width,
+        x: canvasWidth,
         top: topHeight,
         passed: false
     });
     
     // Добавить монетку между трубами
     coinsList.push({
-        x: canvas.width + pipeWidth / 2,
+        x: canvasWidth + pipeWidth / 2,
         y: topHeight + gap / 2,
         collected: false,
         size: 20
@@ -367,12 +493,32 @@ function addPipe() {
 }
 
 function drawBackground() {
-    // Рисуем фон с прокруткой
-    const cols = Math.ceil(canvas.width / bg.width) + 1;
+    // Получаем реальные размеры canvas
+    const canvasWidth = canvas._width || canvas.width / (window.devicePixelRatio || 1);
+    const canvasHeight = canvas._height || canvas.height / (window.devicePixelRatio || 1);
     
-    for (let c = 0; c < cols; c++) {
-        const x = (bgX + c * bg.width) % (cols * bg.width) - bg.width;
-        ctx.drawImage(bg, x, 0, canvas.width, canvas.height);
+    // Рисуем фон с бесконечной прокруткой
+    if (!bg.complete || bg.width === 0) {
+        // Fallback - рисуем градиент если фон не загружен
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+        gradient.addColorStop(0, '#87CEEB');
+        gradient.addColorStop(1, '#E0F6FF');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        return;
+    }
+    
+    const bgWidth = bg.width || canvasWidth;
+    const tilesNeeded = Math.ceil(canvasWidth / bgWidth) + 2;
+    
+    // Нормализуем bgX для бесконечной прокрутки
+    bgX = bgX % bgWidth;
+    if (bgX > 0) bgX -= bgWidth;
+    
+    // Рисуем все плитки фона
+    for (let i = 0; i < tilesNeeded; i++) {
+        const x = bgX + (i * bgWidth);
+        ctx.drawImage(bg, x, 0, bgWidth, canvasHeight);
     }
     
     // Обновляем позицию фона
@@ -380,12 +526,28 @@ function drawBackground() {
 }
 
 function drawForeground() {
-    // Рисуем землю с прокруткой
-    const cols = Math.ceil(canvas.width / fg.width) + 1;
+    // Рисуем землю с бесконечной прокруткой
+    if (!fg.complete || fg.width === 0) return;
     
-    for (let c = 0; c < cols; c++) {
-        const x = (fgX + c * fg.width) % (cols * fg.width) - fg.width;
-        ctx.drawImage(fg, x, canvas.height - fg.height, fg.width, fg.height);
+    // Получаем реальные размеры canvas
+    const canvasWidth = canvas._width || canvas.width / (window.devicePixelRatio || 1);
+    const canvasHeight = canvas._height || canvas.height / (window.devicePixelRatio || 1);
+    
+    const fgWidth = fg.width || 336; // Fallback ширина
+    const fgHeight = fg.height || 112; // Fallback высота
+    const groundY = canvasHeight - fgHeight;
+    
+    // Вычисляем сколько плиток нужно для покрытия экрана
+    const tilesNeeded = Math.ceil(canvasWidth / fgWidth) + 2;
+    
+    // Нормализуем fgX для бесконечной прокрутки
+    fgX = fgX % fgWidth;
+    if (fgX > 0) fgX -= fgWidth;
+    
+    // Рисуем все плитки земли
+    for (let i = 0; i < tilesNeeded; i++) {
+        const x = fgX + (i * fgWidth);
+        ctx.drawImage(fg, x, groundY, fgWidth, fgHeight);
     }
     
     // Обновляем позицию земли
@@ -393,32 +555,69 @@ function drawForeground() {
 }
 
 function drawPipes() {
+    if (!pipeUp.complete || !pipeBottom.complete) return;
+    
+    // Получаем реальные размеры canvas
+    const canvasHeight = canvas._height || canvas.height / (window.devicePixelRatio || 1);
+    
+    const pipeUpHeight = pipeUp.height || 242;
+    const pipeBottomHeight = pipeBottom.height || 242;
+    const fgHeight = fg.height || 112;
+    const groundY = canvasHeight - fgHeight;
+    
     pipes.forEach(pipe => {
-        // Верхняя труба
-        ctx.drawImage(pipeUp, pipe.x, pipe.top - pipeUp.height);
+        // Верхняя труба - от самого верха экрана (y=0) до pipe.top
+        // Рисуем перевернутую трубу сверху вниз
+        const topPipeHeight = pipe.top;
+        if (topPipeHeight > 0) {
+            // Используем перевернутое изображение для верхней трубы
+            ctx.save();
+            ctx.translate(pipe.x, pipe.top);
+            ctx.scale(1, -1);
+            ctx.drawImage(pipeUp, 0, -pipeUpHeight, pipeWidth, pipeUpHeight);
+            ctx.restore();
+        }
         
-        // Нижняя труба
-        const bottomY = pipe.top + gap;
-        ctx.drawImage(pipeBottom, pipe.x, bottomY);
+        // Нижняя труба - от pipe.top + gap до земли
+        const bottomPipeY = pipe.top + gap;
+        const bottomPipeHeight = groundY - bottomPipeY;
+        if (bottomPipeHeight > 0 && bottomPipeY < groundY) {
+            // Растягиваем нижнюю трубу до земли
+            ctx.drawImage(pipeBottom, pipe.x, bottomPipeY, pipeWidth, bottomPipeHeight);
+        }
     });
 }
 
 function drawCoins() {
+    if (!coin.complete) return;
+    
     coinsList.forEach(coinObj => {
         if (!coinObj.collected) {
             // Анимация вращения монетки
             const rotation = Math.sin(frame / 10) * 0.2;
             ctx.save();
+            
+            // Перемещаем в центр монетки
             ctx.translate(coinObj.x, coinObj.y);
             ctx.rotate(rotation);
+            
+            // Рисуем монетку (изображение должно быть с прозрачностью)
+            // Используем imageSmoothingEnabled для четкости на мобильных
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(coin, -coinObj.size/2, -coinObj.size/2, coinObj.size, coinObj.size);
+            
             ctx.restore();
         }
     });
 }
 
 function drawBird() {
+    if (!bird.complete) return;
+    
     ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.translate(birdX + birdSize / 2, birdY + birdSize / 2);
     ctx.rotate(velocity * 0.1);
     ctx.drawImage(bird, -birdSize / 2, -birdSize / 2, birdSize, birdSize);
@@ -537,8 +736,14 @@ function updateCoins() {
 }
 
 function checkCollisions() {
+    // Получаем реальные размеры canvas
+    const canvasHeight = canvas._height || canvas.height / (window.devicePixelRatio || 1);
+    
+    const fgHeight = fg.height || 112;
+    const groundY = canvasHeight - fgHeight;
+    
     // Проверка столкновения с землей
-    if (birdY + birdSize > canvas.height - fg.height) {
+    if (birdY + birdSize > groundY) {
         gameOver();
         return;
     }
@@ -552,14 +757,16 @@ function checkCollisions() {
     // Проверка столкновения с трубами
     for (const pipe of pipes) {
         if (birdX + birdSize > pipe.x && birdX < pipe.x + pipeWidth) {
-            // Верхняя труба
-            if (birdY < pipe.top) {
+            // Верхняя труба - от верха (y=0) до pipe.top
+            const topPipeBottom = pipe.top;
+            if (birdY < topPipeBottom) {
                 gameOver();
                 return;
             }
             
-            // Нижняя труба
-            if (birdY + birdSize > pipe.top + gap) {
+            // Нижняя труба - от pipe.top + gap до земли
+            const bottomPipeTop = pipe.top + gap;
+            if (birdY + birdSize > bottomPipeTop && bottomPipeTop < groundY) {
                 gameOver();
                 return;
             }
@@ -881,8 +1088,35 @@ function copyToClipboard(text) {
 
 // Запуск при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация canvas сразу
+    resizeCanvas();
+    
     // Убедимся, что все ресурсы загружены
     if (loadedResources < resources.length) {
         document.getElementById('loading-progress').style.width = '50%';
     }
+    
+    // Для iPhone - принудительная инициализация через небольшую задержку
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        setTimeout(() => {
+            resizeCanvas();
+            if (!gameLoaded && loadedResources >= resources.length) {
+                initGame();
+            }
+        }, 100);
+    }
+});
+
+// Дополнительная инициализация при полной загрузке страницы
+window.addEventListener('load', function() {
+    resizeCanvas();
+    
+    // Если ресурсы не загрузились, все равно показываем меню
+    setTimeout(() => {
+        if (!gameLoaded) {
+            console.warn('Some resources failed to load, initializing anyway');
+            gameLoaded = true;
+            initGame();
+        }
+    }, 2000);
 });
