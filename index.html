@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#87CEEB">
-    <title>RETRO PIXEL FLYER</title>
+    <meta name="theme-color" content="#1a1a2e">
+    <title>НОВОГОДНИЙ ПОЛЕТ</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="loading-screen">
         <div class="logo">
-            <div class="logo-text">RETRO PIXEL</div>
-            <div class="logo-subtext">FLYER</div>
+            <div class="logo-text">НОВОГОДНИЙ</div>
+            <div class="logo-subtext">ПОЛЕТ</div>
         </div>
         <div class="loading-bar">
             <div id="loading-progress"></div>
@@ -25,17 +25,71 @@
         
         <div class="status-bar">
             <div class="score">СЧЕТ: 0</div>
+            <div class="coins-display">🪙 <span id="coins-count">0</span></div>
             <div class="best-score">РЕКОРД: 0</div>
         </div>
         
         <div class="audio-control" id="audio-btn">🔊</div>
         
-        <div class="main-menu">
+        <div class="main-menu active">
             <div class="menu">
-                <div class="menu-title">RETRO PIXEL FLYER</div>
-                <div class="menu-subtitle">Птица, трубы и бесконечное небо</div>
+                <div class="menu-title">НОВОГОДНИЙ ПОЛЕТ</div>
+                <div class="menu-subtitle">Дед Мороз в полете!</div>
                 <button class="btn" id="start-btn">НАЧАТЬ ИГРУ</button>
+                <button class="btn btn-shop" id="shop-btn">МАГАЗИН</button>
+                <button class="btn btn-achievements" id="achievements-btn">ДОСТИЖЕНИЯ</button>
+                <button class="btn btn-referral" id="referral-btn">РЕФЕРАЛЬНАЯ ПРОГРАММА</button>
                 <button class="btn btn-leaderboard" id="leaderboard-btn">ТАБЛИЦА РЕКОРДОВ</button>
+            </div>
+        </div>
+        
+        <div class="shop-menu">
+            <div class="menu">
+                <div class="menu-title">МАГАЗИН</div>
+                <div class="shop-content" id="shop-content">
+                    <!-- Динамически заполняется -->
+                </div>
+                <button class="btn" id="shop-back-btn">НАЗАД</button>
+            </div>
+        </div>
+        
+        <div class="achievements-menu">
+            <div class="menu">
+                <div class="menu-title">ДОСТИЖЕНИЯ</div>
+                <div class="achievements-content" id="achievements-content">
+                    <!-- Динамически заполняется -->
+                </div>
+                <button class="btn" id="achievements-back-btn">НАЗАД</button>
+            </div>
+        </div>
+        
+        <div class="referral-menu">
+            <div class="menu">
+                <div class="menu-title">РЕФЕРАЛЬНАЯ ПРОГРАММА</div>
+                <div class="referral-content">
+                    <div class="referral-info">
+                        <p>Пригласи друзей и получай бонусы!</p>
+                        <div class="referral-link">
+                            <input type="text" id="referral-link-input" readonly>
+                            <button class="btn-small" id="copy-link-btn">КОПИРОВАТЬ</button>
+                        </div>
+                        <div class="referral-stats">
+                            <div>Приглашено: <span id="referrals-count">0</span></div>
+                            <div>Бонусов получено: <span id="referrals-bonus">0</span> 🪙</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn" id="referral-back-btn">НАЗАД</button>
+            </div>
+        </div>
+        
+        <div class="leaderboard-menu">
+            <div class="menu">
+                <div class="menu-title">ТАБЛИЦА РЕКОРДОВ</div>
+                <div class="leaderboard-content" id="leaderboard-content">
+                    <!-- Динамически заполняется -->
+                </div>
+                <button class="btn" id="leaderboard-back-btn">НАЗАД</button>
             </div>
         </div>
         
@@ -43,6 +97,7 @@
             <div class="game-over">
                 <div class="menu-title">ИГРА ОКОНЧЕНА</div>
                 <div class="score-display">СЧЕТ: <span id="final-score">0</span></div>
+                <div class="coins-earned">ЗАРАБОТАНО: <span id="coins-earned">0</span> 🪙</div>
                 <button class="btn" id="restart-btn">СЫГРАТЬ СНОВА</button>
                 <button class="btn" id="main-menu-btn">ГЛАВНОЕ МЕНЮ</button>
                 <button class="btn btn-share" id="share-btn">ПОДЕЛИТЬСЯ</button>
