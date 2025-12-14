@@ -91,6 +91,8 @@ let fgX = 0;
 let gameLoaded = false;
 let animationFrame = null;
 let currentBird = 'default';
+let touchStartY = 0;
+let touchStartTime = 0;
 
 // Система достижений
 const achievements = [
@@ -149,7 +151,7 @@ function initGame() {
     loadingScreen.style.opacity = '0';
     setTimeout(() => {
         loadingScreen.style.display = 'none';
-        mainMenu.style.display = 'flex';
+        mainMenu.classList.add('active');
     }, 300);
     
     // Загрузка данных из localStorage
@@ -222,41 +224,41 @@ shareBtn.addEventListener('click', shareGame);
 
 // Показать меню
 function showMenu(menuName) {
-    mainMenu.style.display = 'none';
-    gameOverMenu.style.display = 'none';
-    shopMenu.style.display = 'none';
-    achievementsMenu.style.display = 'none';
-    referralMenu.style.display = 'none';
-    leaderboardMenu.style.display = 'none';
+    mainMenu.classList.remove('active');
+    gameOverMenu.classList.remove('active');
+    shopMenu.classList.remove('active');
+    achievementsMenu.classList.remove('active');
+    referralMenu.classList.remove('active');
+    leaderboardMenu.classList.remove('active');
     
     if (menuName === 'shop') {
-        shopMenu.style.display = 'flex';
+        shopMenu.classList.add('active');
         initShop();
     } else if (menuName === 'achievements') {
-        achievementsMenu.style.display = 'flex';
+        achievementsMenu.classList.add('active');
         initAchievements();
     } else if (menuName === 'referral') {
-        referralMenu.style.display = 'flex';
+        referralMenu.classList.add('active');
         initReferral();
     } else if (menuName === 'leaderboard') {
-        leaderboardMenu.style.display = 'flex';
+        leaderboardMenu.classList.add('active');
         initLeaderboard();
     }
 }
 
 function showMainMenu() {
-    mainMenu.style.display = 'flex';
-    gameOverMenu.style.display = 'none';
-    shopMenu.style.display = 'none';
-    achievementsMenu.style.display = 'none';
-    referralMenu.style.display = 'none';
-    leaderboardMenu.style.display = 'none';
-    startScreen.style.display = 'none';
+    mainMenu.classList.add('active');
+    gameOverMenu.classList.remove('active');
+    shopMenu.classList.remove('active');
+    achievementsMenu.classList.remove('active');
+    referralMenu.classList.remove('active');
+    leaderboardMenu.classList.remove('active');
+    startScreen.classList.remove('active');
 }
 
-// Управление игрой
-document.addEventListener('keydown', handleKey);
+// Управление игрой - ИСПРАВЛЕННАЯ ВЕРСИЯ ИЗ ВАШЕГО КОДА
 canvas.addEventListener('click', handleClick);
+document.addEventListener('keydown', handleKey);
 canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 
@@ -295,11 +297,50 @@ function handleInput() {
     }
 }
 
+// Универсальный обработчик для start-screen
+function handleStartScreenTouch(e) {
+    // Игнорируем только кнопки и меню
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' ||
+        e.target.closest('.menu') || e.target.closest('.status-bar') ||
+        e.target.closest('.audio-control')) {
+        return;
+    }
+    // Если start-screen активен и игра не началась - обрабатываем любое касание
+    if (startScreen && startScreen.classList.contains('active') && !gameStarted && gameActive) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleInput();
+    }
+}
+
+// Дополнительный обработчик на document для надежности (только когда start-screen активен)
+document.addEventListener('touchstart', function(e) {
+    if (startScreen && startScreen.classList.contains('active') && !gameStarted && gameActive) {
+        // Игнорируем только кнопки и меню
+        if (!e.target.closest('button') && !e.target.closest('.menu') && 
+            !e.target.closest('.status-bar') && !e.target.closest('.audio-control')) {
+            e.preventDefault();
+            handleInput();
+        }
+    }
+}, { passive: false });
+
+document.addEventListener('touchend', function(e) {
+    if (startScreen && startScreen.classList.contains('active') && !gameStarted && gameActive) {
+        // Игнорируем только кнопки и меню
+        if (!e.target.closest('button') && !e.target.closest('.menu') && 
+            !e.target.closest('.status-bar') && !e.target.closest('.audio-control')) {
+            e.preventDefault();
+            handleInput();
+        }
+    }
+}, { passive: false });
+
 function startGame() {
     // Скрыть все меню
-    mainMenu.style.display = 'none';
-    gameOverMenu.style.display = 'none';
-    startScreen.style.display = 'flex';
+    mainMenu.classList.remove('active');
+    gameOverMenu.classList.remove('active');
+    startScreen.classList.add('active');
     
     // Сбросить игру
     score = 0;
@@ -333,17 +374,21 @@ function startGame() {
     
     // Запустить игровой цикл
     if (animationFrame) cancelAnimationFrame(animationFrame);
+    lastTime = 0;
     gameLoop();
 }
 
 function startPlaying() {
     gameStarted = true;
-    startScreen.style.display = 'none';
+    startScreen.classList.remove('active');
     jump();
 }
 
 function jump() {
+    // Плавный прыжок с ограничением максимальной скорости
     velocity = jumpPower;
+    if (velocity < -12) velocity = -12; // Ограничение максимальной скорости вверх
+    
     if (isSoundOn) {
         jumpSound.currentTime = 0;
         jumpSound.play().catch(e => console.log('Sound playback failed'));
@@ -406,16 +451,13 @@ function addPipe() {
 
 // Отрисовка фона
 function drawBackground() {
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
-    
     // Рисуем фон несколько раз для заполнения всего canvas
-    const cols = Math.ceil(canvasWidth / bg.width) + 1;
-    const rows = Math.ceil(canvasHeight / bg.height) + 1;
+    const cols = Math.ceil(canvas.width / bg.width) + 1;
+    const rows = Math.ceil(canvas.height / bg.height) + 1;
     
     for (let c = 0; c < cols; c++) {
         for (let r = 0; r < rows; r++) {
-            ctx.drawImage(bg, c * bg.width, r * bg.height, bg.width, bg.height);
+            ctx.drawImage(bg, c * bg.width, r * bg.height);
         }
     }
 }
@@ -463,11 +505,13 @@ function drawCoins() {
     });
 }
 
-// Отрисовка птицы
+// Отрисовка птицы (оптимизированная для плавности)
 function drawBird() {
     ctx.save();
+    // Плавное вращение птицы в зависимости от скорости
+    const rotationAngle = velocity * 0.1;
     ctx.translate(birdX + bird.width/2, birdY + bird.height/2);
-    ctx.rotate(velocity * 0.1);
+    ctx.rotate(rotationAngle);
     ctx.drawImage(bird, -bird.width/2, -bird.height/2, bird.width, bird.height);
     ctx.restore();
 }
@@ -488,7 +532,8 @@ function drawForeground() {
 }
 
 // Игровой цикл
-function gameLoop() {
+let lastTime = 0;
+function gameLoop(currentTime = performance.now()) {
     if (!gameActive) return;
     
     // Очистка canvas
@@ -548,6 +593,33 @@ function gameLoop() {
     animationFrame = requestAnimationFrame(gameLoop);
 }
 
+function updateBird() {
+    if (gameStarted) {
+        // Плавное ускорение падения
+        velocity += gravity;
+        if (velocity > 10) velocity = 10; // Ограничение максимальной скорости падения
+        
+        // Плавное движение птички
+        birdY += velocity;
+    }
+    
+    // Проверка столкновения с верхом экрана
+    if (birdY <= 0) {
+        birdY = 0;
+        velocity = 0;
+    }
+    
+    // Проверка столкновения с землей
+    const canvasHeight = canvas.height;
+    const fgHeight = fg.naturalHeight || fg.height || 112;
+    const groundY = canvasHeight - fgHeight;
+    const birdBottom = birdY + bird.height;
+    
+    if (birdBottom >= groundY) {
+        gameOver();
+    }
+}
+
 function updatePipes() {
     frame++;
     
@@ -556,8 +628,12 @@ function updatePipes() {
         addPipe();
     }
     
+    // Обновление позиции труб (плавная скорость)
+    const speedMultiplier = 1 + Math.min(score * 0.02, 2.0); // Плавное увеличение скорости с ограничением
+    const currentSpeed = gameSpeed * speedMultiplier;
+    
     for (let i = pipes.length - 1; i >= 0; i--) {
-        pipes[i].x -= 2;
+        pipes[i].x -= currentSpeed;
         
         // Проверка прохождения трубы
         if (!pipes[i].passed && pipes[i].x + pipeUp.width < birdX) {
@@ -575,22 +651,38 @@ function updatePipes() {
 }
 
 function updateCoins() {
+    // Обновление позиции монет (плавная скорость)
+    const speedMultiplier = 1 + Math.min(score * 0.02, 2.0);
+    const currentSpeed = gameSpeed * speedMultiplier;
+    
     for (let i = coinsList.length - 1; i >= 0; i--) {
-        coinsList[i].x -= 2;
+        coinsList[i].x -= currentSpeed;
         
         // Проверка сбора монеты
-        if (!coinsList[i].collected && 
-            birdX < coinsList[i].x + coinsList[i].size &&
-            birdX + bird.width > coinsList[i].x &&
-            birdY < coinsList[i].y + coinsList[i].size &&
-            birdY + bird.height > coinsList[i].y) {
-            coinsList[i].collected = true;
-            coinsCollected++;
-            coinsEarned++;
-            totalCoins++;
-            coinsCountElement.textContent = totalCoins;
-            updateScore();
-            if (isSoundOn) coinSound.play().catch(e => console.log('Sound playback failed'));
+        if (!coinsList[i].collected) {
+            const coinCenterX = coinsList[i].x;
+            const coinCenterY = coinsList[i].y;
+            const birdCenterX = birdX + bird.width / 2;
+            const birdCenterY = birdY + bird.height / 2;
+            
+            const dx = coinCenterX - birdCenterX;
+            const dy = coinCenterY - birdCenterY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const collisionDistance = (coinsList[i].size / 2 + bird.width / 2);
+            
+            if (distance < collisionDistance) {
+                coinsList[i].collected = true;
+                const coinValue = coinsList[i].value || 1;
+                coinsCollected += coinValue;
+                coinsEarned += coinValue;
+                totalCoins += coinValue;
+                coinsCountElement.textContent = totalCoins;
+                
+                if (isSoundOn) {
+                    coinSound.currentTime = 0;
+                    coinSound.play().catch(e => console.log('Sound playback failed'));
+                }
+            }
         }
         
         // Удаление монет за пределами экрана
@@ -600,41 +692,38 @@ function updateCoins() {
     }
 }
 
-function updateBird() {
-    if (gameStarted) {
-        velocity += gravity;
-        birdY += velocity;
-    }
-}
-
 function checkCollisions() {
-    // Проверка столкновения с землей
-    const canvasHeight = canvas.height;
-    const fgHeight = fg.naturalHeight || fg.height || 112;
-    const groundY = canvasHeight - fgHeight;
-    if (birdY + bird.height > groundY) {
-        gameOver();
-        return;
-    }
+    const birdLeft = birdX;
+    const birdRight = birdX + bird.width;
+    const birdTop = birdY;
+    const birdBottom = birdY + bird.height;
     
-    // Проверка столкновения с потолком
-    if (birdY < 0) {
-        birdY = 0;
-        velocity = 0;
-    }
-    
-    // Проверка столкновения с трубами
-    for (const pipe of pipes) {
-        if (birdX + bird.width > pipe.x && birdX < pipe.x + pipeUp.width) {
-            // Верхняя труба
-            if (birdY < pipe.gapY) {
+    // Проверка столкновений с трубами
+    for (let i = 0; i < pipes.length; i++) {
+        const pipe = pipes[i];
+        const pipeLeft = pipe.x;
+        const pipeRight = pipe.x + pipeUp.width;
+        
+        // Проверяем только видимые трубы
+        if (pipeRight < birdLeft - 50 || pipeLeft > birdRight + 50) {
+            continue;
+        }
+        
+        // Проверка горизонтального пересечения
+        if (birdRight > pipeLeft && birdLeft < pipeRight) {
+            // Верхняя труба: от верха до gapY
+            if (birdTop < pipe.gapY) {
                 gameOver();
                 return;
             }
             
-            // Нижняя труба
-            const bottomPipeY = pipe.gapY + gap;
-            if (birdY + bird.height > bottomPipeY) {
+            // Нижняя труба: от gapY + gap до земли
+            const canvasHeight = canvas.height;
+            const fgHeight = fg.naturalHeight || fg.height || 112;
+            const groundY = canvasHeight - fgHeight;
+            const bottomPipeTop = pipe.gapY + gap;
+            
+            if (birdBottom > bottomPipeTop && bottomPipeTop < groundY) {
                 gameOver();
                 return;
             }
@@ -643,7 +732,8 @@ function checkCollisions() {
 }
 
 function updateScore() {
-    scoreElement.textContent = `СЧЕТ: ${score + coinsCollected}`;
+    const totalScore = score + coinsCollected;
+    scoreElement.textContent = `СЧЕТ: ${totalScore}`;
 }
 
 function checkAchievements() {
@@ -661,7 +751,7 @@ function checkAchievements() {
 
 function gameOver() {
     gameActive = false;
-    cancelAnimationFrame(animationFrame);
+    if (animationFrame) cancelAnimationFrame(animationFrame);
     
     if (isSoundOn) {
         bgMusic.pause();
@@ -673,14 +763,14 @@ function gameOver() {
     const totalScore = score + coinsCollected;
     if (totalScore > bestScore) {
         bestScore = totalScore;
-        localStorage.setItem('retroPixelFlyerBestScore', bestScore);
         bestScoreElement.textContent = `РЕКОРД: ${bestScore}`;
         
         // Добавление в таблицу рекордов
         let leaderboard = JSON.parse(localStorage.getItem('retroPixelFlyerLeaderboard') || '[]');
         leaderboard.push({ 
             score: bestScore, 
-            date: new Date().toLocaleDateString('ru-RU')
+            date: new Date().toLocaleDateString('ru-RU'),
+            timestamp: Date.now()
         });
         leaderboard.sort((a, b) => b.score - a.score);
         leaderboard = leaderboard.slice(0, 10); // Топ 10
@@ -690,7 +780,6 @@ function gameOver() {
     // Добавление монет
     totalCoins += coinsEarned;
     coinsCountElement.textContent = totalCoins;
-    localStorage.setItem('retroPixelFlyerCoins', totalCoins);
     
     // Сохранение данных
     saveGameData();
@@ -698,13 +787,12 @@ function gameOver() {
     // Показать меню Game Over
     finalScoreElement.textContent = totalScore;
     coinsEarnedElement.textContent = coinsEarned;
-    gameOverMenu.style.display = 'flex';
+    gameOverMenu.classList.add('active');
 }
 
 function toggleSound() {
     isSoundOn = !isSoundOn;
     audioBtn.textContent = isSoundOn ? '🔊' : '🔇';
-    
     if (isSoundOn) {
         bgMusic.play().catch(e => console.log('Autoplay blocked'));
     } else {
@@ -917,7 +1005,7 @@ function initLeaderboard() {
 // Функция поделиться
 function shareGame() {
     const totalScore = score + coinsCollected;
-    const shareText = `🎮 Я набрал ${totalScore} очков в RETRO PIXEL FLYER!\nПопробуй побить мой рекорд!\nhttps://pump0n.github.io/01-retro-flyer/`;
+    const shareText = `🎮 Я набрал ${totalScore} очков вRETRO PIXEL FLYER!\nПопробуй побить мой рекорд!\nhttps://pump0n.github.io/01-retro-flyer/`;
     
     if (navigator.share) {
         navigator.share({
@@ -942,4 +1030,26 @@ function shareGame() {
 }
 
 // Запуск при загрузке страницы
-document.addEventListener('DOMContentLoaded', initGame);
+document.addEventListener('DOMContentLoaded', function() {
+    // Устанавливаем плавную анимацию canvas
+    if (ctx) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+    }
+    
+    resizeCanvas();
+    
+    // Если ресурсы не загрузились вовремя, инициализируем игру вручную
+    setTimeout(() => {
+        if (!gameLoaded) {
+            console.warn('Forcing game initialization');
+            gameLoaded = true;
+            initGame();
+        }
+    }, 3000);
+});
+
+// Загрузка игры при полной загрузке страницы
+window.addEventListener('load', function() {
+    resizeCanvas();
+});
