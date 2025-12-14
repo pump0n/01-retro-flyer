@@ -138,9 +138,11 @@ resources.forEach(res => {
 
 // Resize canvas с учетом мобильных устройств
 function resizeCanvas() {
+    if (!canvas) return;
+    
     // Получаем реальные размеры экрана
-    const width = window.innerWidth || document.documentElement.clientWidth || window.screen.width;
-    const height = window.innerHeight || document.documentElement.clientHeight || window.screen.height;
+    const width = window.innerWidth || document.documentElement.clientWidth || window.screen.width || 800;
+    const height = window.innerHeight || document.documentElement.clientHeight || window.screen.height || 600;
     
     // Устанавливаем CSS размеры
     canvas.style.width = width + 'px';
@@ -161,6 +163,12 @@ function resizeCanvas() {
     // Сохраняем реальные размеры для использования в игре
     canvas._width = width;
     canvas._height = height;
+    
+    // Убеждаемся, что контекст правильно настроен
+    if (ctx) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+    }
 }
 
 // Инициализация canvas при загрузке
@@ -312,10 +320,17 @@ function showMainMenu() {
 let touchStartY = 0;
 let touchStartTime = 0;
 
-// Touch события для мобильных устройств
+// Touch события для мобильных устройств - добавляем на canvas и start-screen
 canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+// Также добавляем на start-screen, так как он перекрывает canvas
+if (startScreen) {
+    startScreen.addEventListener('touchstart', handleTouchStart, { passive: false });
+    startScreen.addEventListener('touchend', handleTouchEnd, { passive: false });
+    startScreen.addEventListener('click', handleClick);
+}
 
 // Клики для десктопа
 canvas.addEventListener('click', handleClick);
@@ -335,9 +350,21 @@ function handleClick(e) {
         e.target.closest('.audio-control')) {
         return;
     }
-    e.preventDefault();
-    e.stopPropagation();
-    handleInput();
+    
+    // Разрешаем клики по start-screen
+    if (e.target.closest('.start-screen') || e.target === startScreen) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleInput();
+        return;
+    }
+    
+    // Для canvas
+    if (e.target === canvas || e.target.closest('#game-canvas')) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleInput();
+    }
 }
 
 function handleTouchStart(e) {
@@ -348,12 +375,24 @@ function handleTouchStart(e) {
         return;
     }
     
-    e.preventDefault();
-    e.stopPropagation();
+    // Разрешаем touch по start-screen
+    if (e.target.closest('.start-screen') || e.target === startScreen) {
+        e.preventDefault();
+        e.stopPropagation();
+        const touch = e.touches[0];
+        touchStartY = touch.clientY;
+        touchStartTime = Date.now();
+        return;
+    }
     
-    const touch = e.touches[0];
-    touchStartY = touch.clientY;
-    touchStartTime = Date.now();
+    // Для canvas
+    if (e.target === canvas || e.target.closest('#game-canvas')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const touch = e.touches[0];
+        touchStartY = touch.clientY;
+        touchStartTime = Date.now();
+    }
 }
 
 function handleTouchEnd(e) {
@@ -364,21 +403,40 @@ function handleTouchEnd(e) {
         return;
     }
     
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const touch = e.changedTouches[0];
-    const touchEndY = touch.clientY;
-    const touchDuration = Date.now() - touchStartTime;
-    const touchDistance = Math.abs(touchEndY - touchStartY);
-    
-    // Обрабатываем только быстрые касания (не свайпы)
-    if (touchDuration < 300 && touchDistance < 50) {
-        handleInput();
+    // Разрешаем touch по start-screen
+    if (e.target.closest('.start-screen') || e.target === startScreen) {
+        e.preventDefault();
+        e.stopPropagation();
+        const touch = e.changedTouches[0];
+        const touchEndY = touch.clientY;
+        const touchDuration = Date.now() - touchStartTime;
+        const touchDistance = Math.abs(touchEndY - touchStartY);
         
-        // Тактильная обратная связь для мобильных
-        if (tg && tg.HapticFeedback) {
-            tg.HapticFeedback.impactOccurred('light');
+        // Обрабатываем только быстрые касания (не свайпы)
+        if (touchDuration < 300 && touchDistance < 50) {
+            handleInput();
+            if (tg && tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+        }
+        return;
+    }
+    
+    // Для canvas
+    if (e.target === canvas || e.target.closest('#game-canvas')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const touch = e.changedTouches[0];
+        const touchEndY = touch.clientY;
+        const touchDuration = Date.now() - touchStartTime;
+        const touchDistance = Math.abs(touchEndY - touchStartY);
+        
+        // Обрабатываем только быстрые касания (не свайпы)
+        if (touchDuration < 300 && touchDistance < 50) {
+            handleInput();
+            if (tg && tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
         }
     }
 }
@@ -403,6 +461,12 @@ function handleInput() {
 function startGame() {
     // Убеждаемся, что canvas правильно инициализирован
     resizeCanvas();
+    
+    // Проверяем, что canvas доступен
+    if (!canvas || !ctx) {
+        console.error('Canvas not available');
+        return;
+    }
     
     // Скрыть все меню
     mainMenu.classList.remove('active');
@@ -498,7 +562,7 @@ function drawBackground() {
     const canvasHeight = canvas._height || canvas.height / (window.devicePixelRatio || 1);
     
     // Рисуем фон с бесконечной прокруткой
-    if (!bg.complete || bg.width === 0) {
+    if (!bg.complete || bg.naturalWidth === 0 || bg.width === 0) {
         // Fallback - рисуем градиент если фон не загружен
         const gradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
         gradient.addColorStop(0, '#87CEEB');
@@ -508,12 +572,14 @@ function drawBackground() {
         return;
     }
     
-    const bgWidth = bg.width || canvasWidth;
+    const bgWidth = bg.naturalWidth || bg.width || canvasWidth;
     const tilesNeeded = Math.ceil(canvasWidth / bgWidth) + 2;
     
     // Нормализуем bgX для бесконечной прокрутки
-    bgX = bgX % bgWidth;
-    if (bgX > 0) bgX -= bgWidth;
+    if (bgWidth > 0) {
+        bgX = bgX % bgWidth;
+        if (bgX > 0) bgX -= bgWidth;
+    }
     
     // Рисуем все плитки фона
     for (let i = 0; i < tilesNeeded; i++) {
@@ -526,23 +592,31 @@ function drawBackground() {
 }
 
 function drawForeground() {
-    // Рисуем землю с бесконечной прокруткой
-    if (!fg.complete || fg.width === 0) return;
-    
     // Получаем реальные размеры canvas
     const canvasWidth = canvas._width || canvas.width / (window.devicePixelRatio || 1);
     const canvasHeight = canvas._height || canvas.height / (window.devicePixelRatio || 1);
     
-    const fgWidth = fg.width || 336; // Fallback ширина
-    const fgHeight = fg.height || 112; // Fallback высота
+    // Рисуем землю с бесконечной прокруткой
+    if (!fg.complete || fg.naturalWidth === 0 || fg.width === 0) {
+        // Fallback - рисуем простую землю
+        ctx.fillStyle = '#8B4513';
+        const groundHeight = 50;
+        ctx.fillRect(0, canvasHeight - groundHeight, canvasWidth, groundHeight);
+        return;
+    }
+    
+    const fgWidth = fg.naturalWidth || fg.width || 336; // Fallback ширина
+    const fgHeight = fg.naturalHeight || fg.height || 112; // Fallback высота
     const groundY = canvasHeight - fgHeight;
     
     // Вычисляем сколько плиток нужно для покрытия экрана
     const tilesNeeded = Math.ceil(canvasWidth / fgWidth) + 2;
     
     // Нормализуем fgX для бесконечной прокрутки
-    fgX = fgX % fgWidth;
-    if (fgX > 0) fgX -= fgWidth;
+    if (fgWidth > 0) {
+        fgX = fgX % fgWidth;
+        if (fgX > 0) fgX -= fgWidth;
+    }
     
     // Рисуем все плитки земли
     for (let i = 0; i < tilesNeeded; i++) {
@@ -627,10 +701,14 @@ function drawBird() {
 function gameLoop() {
     if (!gameActive) return;
     
-    // Очистка canvas
+    // Получаем реальные размеры canvas
+    const canvasWidth = canvas._width || canvas.width / (window.devicePixelRatio || 1);
+    const canvasHeight = canvas._height || canvas.height / (window.devicePixelRatio || 1);
+    
+    // Очистка canvas - используем полные размеры canvas (с учетом DPR)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Отрисовка фона
+    // Отрисовка фона (всегда рисуем, даже если ресурс не загружен)
     drawBackground();
     
     // Отрисовка труб
