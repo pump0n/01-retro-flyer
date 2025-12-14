@@ -63,8 +63,6 @@ let isSoundEnabled = true;
 let gameStarted = false;
 let canvasWidth = window.innerWidth;
 let canvasHeight = window.innerHeight;
-let pipeHeight = 0;
-let fgHeight = 0;
 let scale = 1;
 
 // Обработчики событий
@@ -114,10 +112,6 @@ function handleTouch(e) {
 function init() {
     // Настройка размеров canvas
     resizeCanvas();
-    
-    // Получение размеров изображений
-    pipeHeight = pipeUp.height;
-    fgHeight = fg.height;
     
     // Загрузка рекорда из localStorage
     bestScore = parseInt(localStorage.getItem('retroPixelFlyerBestScore') || '0');
@@ -191,7 +185,7 @@ function jump() {
 }
 
 function addPipe() {
-    const pipeY = Math.floor(Math.random() * (canvasHeight - gap - fgHeight - 100)) + 50;
+    const pipeY = Math.floor(Math.random() * (canvasHeight - gap - fg.height - 100)) + 50;
     pipes.push({
         x: canvasWidth,
         y: pipeY,
@@ -268,7 +262,7 @@ function drawBird() {
 
 function drawForeground() {
     // Рисуем передний фон внизу экрана
-    ctx.drawImage(fg, 0, canvasHeight - fgHeight);
+    ctx.drawImage(fg, 0, canvasHeight - fg.height);
 }
 
 function updatePipes() {
@@ -307,7 +301,7 @@ function updateBird() {
 
 function checkCollisions() {
     // Проверка столкновения с землей
-    if (yPos + bird.height > canvasHeight - fgHeight) {
+    if (yPos + bird.height > canvasHeight - fg.height) {
         gameOver();
         return;
     }
@@ -424,19 +418,6 @@ function shareScore() {
 function resizeCanvas() {
     canvasWidth = window.innerWidth;
     canvasHeight = window.innerHeight;
-    
-    // Вычисляем масштаб для корректного отображения
-    const aspectRatio = 288 / 512; // Соотношение сторон оригинальной игры
-    let newWidth = canvasWidth;
-    let newHeight = canvasWidth / aspectRatio;
-    
-    if (newHeight > canvasHeight) {
-        newHeight = canvasHeight;
-        newWidth = canvasHeight * aspectRatio;
-    }
-    
-    // Масштабируем
-    scale = newWidth / 288;
     
     // Устанавливаем размеры canvas
     canvas.width = canvasWidth;
