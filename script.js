@@ -4,36 +4,36 @@ if (tg) {
     tg.ready();
 }
 
-// DOM
+// DOM элементы
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 const mainMenu = document.querySelector('.main-menu');
 const gameOverMenu = document.querySelector('.game-over-menu');
 const startScreen = document.querySelector('.start-screen');
+const loadingScreen = document.getElementById('loading-screen');
 const startBtn = document.getElementById('start-btn');
 const restartBtn = document.getElementById('restart-btn');
 const mainMenuBtn = document.getElementById('main-menu-btn');
 const audioBtn = document.getElementById('audio-btn');
-const shareBtn = document.getElementById('share-btn');
 const finalScoreElement = document.getElementById('final-score');
 const scoreElement = document.querySelector('.score');
 const bestScoreElement = document.querySelector('.best-score');
 
-// Изображения
+// Изображения (пути к твоим файлам)
 const birdImg = new Image(); birdImg.src = 'assets/flappy_bird_bird.png';
 const bgImg = new Image(); bgImg.src = 'assets/bg.png';
 const fgImg = new Image(); fgImg.src = 'assets/fg.png';
-const pipeTopImg = new Image(); pipeTopImg.src = 'assets/pipeUp.png';     // шляпка сверху
-const pipeBottomImg = new Image(); pipeBottomImg.src = 'assets/pipeBottom.png'; // шляпка снизу
-const coinImg = new Image(); coinImg.src = 'assets/coin.png'; // Твой новый файл!
+const pipeTopImg = new Image(); pipeTopImg.src = 'assets/pipeUp.png';
+const pipeBottomImg = new Image(); pipeBottomImg.src = 'assets/pipeBottom.png';
+const coinImg = new Image(); coinImg.src = 'assets/coin.png'; // Твой файл
 
-// Звуки
+// Звуки (если нет файлов — просто не будут играть, ошибки не будет)
 const jumpSound = new Audio('assets/jump.mp3');
 const coinSound = new Audio('assets/coin.mp3');
 const hitSound = new Audio('assets/hit.mp3');
 const bgMusic = new Audio('assets/music.mp3');
 
-// Переменные
+// Игровые переменные
 let score = 0, coinsCollected = 0, bestScore = 0;
 let gameActive = false, gameStarted = false;
 let pipes = [], coinsList = [];
@@ -41,26 +41,40 @@ let birdX, birdY, velocity = 0;
 const gravity = 0.35;
 const jumpPower = -8;
 const gap = 150;
-const pipeWidth = 60; // Подгони под ширину твоих труб (обычно 52-60)
+const pipeWidth = 60; // Подгони под свои трубы
 const birdSize = 40;
 let frame = 0;
 let isSoundOn = true;
-let resourcesLoaded = 0;
-const totalResources = 6; // bird, bg, fg, pipeTop, pipeBottom, coin
 
-// Ожидание загрузки всех изображений
-function resourceLoaded() {
-    resourcesLoaded++;
-    if (resourcesLoaded === totalResources) {
-        bestScore = parseInt(localStorage.getItem('retroPixelFlyerBestScore') || '0');
-        bestScoreElement.textContent = `РЕКОРД: ${bestScore}`;
-        document.getElementById('loading-screen').style.display = 'none';
-        mainMenu.classList.add('active');
-    }
+// Resize canvas
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 }
-birdImg.onload = bgImg.onload = fgImg.onload = pipeTopImg.onload = pipeBottomImg.onload = coinImg.onload = resourceLoaded;
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-// Надёжные касания для Telegram
+// Загрузка рекорда
+bestScore = parseInt(localStorage.getItem('retroPixelFlyerBestScore') || '0');
+bestScoreElement.textContent = `РЕКОРД: ${bestScore}`;
+
+// Скрываем loading сразу (чтобы меню показалось)
+loadingScreen.style.display = 'none';
+mainMenu.classList.add('active');
+
+// Кнопки
+startBtn.addEventListener('click', startGame);
+restartBtn.addEventListener('click', startGame);
+mainMenuBtn.addEventListener('click', () => {
+    mainMenu.classList.add('active');
+    gameOverMenu.classList.remove('active');
+});
+audioBtn.addEventListener('click', () => {
+    isSoundOn = !isSoundOn;
+    audioBtn.textContent = isSoundOn ? '🔊' : '🔇';
+});
+
+// Касания/клики (надёжно для Telegram)
 document.addEventListener('touchstart', handleTap, { passive: false });
 document.addEventListener('click', handleTap);
 document.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); handleTap(); } });
@@ -73,27 +87,11 @@ function handleTap(e) {
     if (tg) tg.HapticFeedback.impactOccurred('light');
 }
 
-// Кнопки
-startBtn.onclick = restartBtn.onclick = startGame;
-mainMenuBtn.onclick = () => { mainMenu.classList.add('active'); gameOverMenu.classList.remove('active'); };
-audioBtn.onclick = () => {
-    isSoundOn = !isSoundOn;
-    audioBtn.textContent = isSoundOn ? '🔊' : '🔇';
-};
-
-// Resize
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
 function startGame() {
     mainMenu.classList.remove('active');
-    gameOverMenu.classList.remove('active');
     startScreen.classList.add('active');
 
+    // Сброс игры
     score = 0; coinsCollected = 0;
     pipes = []; coinsList = [];
     birdX = canvas.width * 0.2;
@@ -102,9 +100,9 @@ function startGame() {
     gameActive = true;
     gameStarted = false;
     frame = 0;
-
-    addPipe();
     scoreElement.textContent = `СЧЕТ: 0`;
+
+    addPipe(); // Первая пара труб
 
     if (isSoundOn) {
         bgMusic.loop = true;
@@ -131,13 +129,8 @@ function addPipe() {
     const maxTop = canvas.height - fgImg.height - gap - 80;
     const topHeight = Math.floor(Math.random() * (maxTop - minTop)) + minTop;
 
-    pipes.push({
-        x: canvas.width,
-        top: topHeight,
-        passed: false
-    });
+    pipes.push({ x: canvas.width, top: topHeight, passed: false });
 
-    // Монетка в центре зазора
     coinsList.push({
         x: canvas.width + pipeWidth / 2,
         y: topHeight + gap / 2,
@@ -148,27 +141,27 @@ function addPipe() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Фон
+    // Фон (просто растягиваем)
     ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
     // Трубы
     pipes.forEach(p => {
-        ctx.drawImage(pipeTopImg, p.x, p.top - pipeTopImg.height); // Верхняя
-        ctx.drawImage(pipeBottomImg, p.x, p.top + gap);           // Нижняя
+        ctx.drawImage(pipeTopImg, p.x, p.top - pipeTopImg.height);
+        ctx.drawImage(pipeBottomImg, p.x, p.top + gap);
     });
 
-    // Монетки (твой coin.png)
+    // Монетки
     coinsList.forEach(c => {
         if (!c.collected) {
-            ctx.drawImage(coinImg, c.x - 20, c.y - 20, 40, 40); // Размер подгони под свой png
+            ctx.drawImage(coinImg, c.x - 20, c.y - 20, 40, 40);
         }
     });
 
-    // Птица с поворотом
+    // Птица
     ctx.save();
-    ctx.translate(birdX + birdSize/2, birdY + birdSize/2);
+    ctx.translate(birdX + birdSize / 2, birdY + birdSize / 2);
     ctx.rotate(velocity * 0.08);
-    ctx.drawImage(birdImg, -birdSize/2, -birdSize/2, birdSize, birdSize);
+    ctx.drawImage(birdImg, -birdSize / 2, -birdSize / 2, birdSize, birdSize);
     ctx.restore();
 
     // Земля
@@ -182,9 +175,8 @@ function update() {
     birdY += velocity;
 
     frame++;
-    if (frame % 95 === 0) addPipe(); // Трубы каждые ~3 секунды
+    if (frame % 95 === 0) addPipe();
 
-    // Трубы и счёт
     pipes.forEach((p, i) => {
         p.x -= 2;
         if (!p.passed && p.x + pipeWidth < birdX) {
@@ -196,7 +188,6 @@ function update() {
         if (p.x < -pipeWidth) pipes.splice(i, 1);
     });
 
-    // Монетки
     coinsList.forEach((c, i) => {
         c.x -= 2;
         if (!c.collected && Math.hypot(c.x - birdX, c.y - birdY) < 45) {
