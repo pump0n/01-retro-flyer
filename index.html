@@ -2,147 +2,56 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#1a1a1a">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#87CEEB">
     <title>RETRO PIXEL FLYER</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="loading-screen">
-        <div class="pixel-art">LOADING</div>
-        <div id="loading-bar">
+        <div class="logo">
+            <div class="logo-text">RETRO PIXEL</div>
+            <div class="logo-subtext">FLYER</div>
+        </div>
+        <div class="loading-bar">
             <div id="loading-progress"></div>
         </div>
-        <div id="loading-text">Загрузка игры...</div>
+        <div class="loading-text">ЗАГРУЗКА ИГРЫ...</div>
     </div>
-    
-    <div class="status-bar">
-        <div class="best-score">BEST: 0</div>
-        <div class="level">LVL: 1</div>
-        <div class="coins">COINS: 0</div>
-        <div class="score">SCORE: 0</div>
-    </div>
-    
-    <div class="audio-control" id="audio-btn">🔊</div>
     
     <div id="game-container">
-        <canvas id="game-canvas" width="320" height="480"></canvas>
+        <canvas id="game-canvas"></canvas>
+        
+        <div class="status-bar">
+            <div class="score">СЧЕТ: 0</div>
+            <div class="best-score">РЕКОРД: 0</div>
+        </div>
+        
+        <div class="audio-control" id="audio-btn">🔊</div>
         
         <div class="main-menu">
             <div class="menu">
                 <div class="menu-title">RETRO PIXEL FLYER</div>
-                <div class="pixel-art">
- ██████╗ ██████╗ ██╗  ██╗███████╗██████╗ 
-██╔════╝██╔═══██╗██║ ██╔╝██╔════╝██╔══██╗
-██║     ██║   ██║█████╔╝ █████╗  ██████╔╝
-██║     ██║   ██║██╔═██╗ ██╔══╝  ██╔══██╗
-╚██████╗╚██████╔╝██║  ██╗███████╗██║  ██║
- ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
-                </div>
-                <div class="menu-subtitle">Бесконечный полет в пиксельном мире. Собирай монеты, избегай препятствий, покупай улучшения!</div>
-                <button class="btn" id="start-btn">▶️ START GAME</button>
-                <button class="btn btn-shop" id="shop-btn">🏪 SHOP</button>
-                <button class="btn btn-leaderboard" id="leaderboard-btn">🏆 LEADERBOARD</button>
-                <div class="pixel-art controls">
-CONTROLS: TAP OR SPACEBAR
-                </div>
+                <div class="menu-subtitle">Птица, трубы и бесконечное небо</div>
+                <button class="btn" id="start-btn">НАЧАТЬ ИГРУ</button>
+                <button class="btn btn-leaderboard" id="leaderboard-btn">ТАБЛИЦА РЕКОРДОВ</button>
             </div>
         </div>
         
         <div class="game-over-menu">
             <div class="game-over">
-                <div class="menu-title">GAME OVER</div>
-                <div class="pixel-art">
-   ▄████  ▄▄▄       ███▄ ▄███▓▓█████ 
-  ██▒ ▀█▒▒████▄    ▓██▒▀█▀ ██▒▓█   ▀ 
- ▒██░▄▄▄░▒██  ▀█▄  ▓██    ▓██░▒███   
- ░▓█  ██▓░██▄▄▄▄██ ▒██    ▒██ ▒▓█  ▄ 
- ░▒▓███▀▒ ▓█   ▓██▒▒██▒   ░██▒░▒████▒
-  ░▒   ▒  ▒▒   ▓▒█░░ ▒░   ░  ░░░ ▒░ ░
-   ░   ░   ▒   ▒▒ ░░  ░      ░ ░ ░  ░
- ░ ░   ░   ░   ▒   ░      ░      ░   
-       ░       ░  ░       ░      ░  ░
-                </div>
-                <div class="game-over-score">SCORE: <span id="final-score">0</span></div>
-                <div class="game-over-coins">+<span id="earned-coins">0</span> COINS EARNED</div>
-                <button class="btn" id="restart-btn">🔄 PLAY AGAIN</button>
-                <button class="btn btn-leaderboard" id="submit-score-btn">📊 SUBMIT SCORE</button>
-                <button class="btn" id="share-btn">📱 ПОДЕЛИТЬСЯ</button>
-                <button class="btn" id="main-menu-btn">🏠 ГЛАВНОЕ МЕНЮ</button>
+                <div class="menu-title">ИГРА ОКОНЧЕНА</div>
+                <div class="score-display">СЧЕТ: <span id="final-score">0</span></div>
+                <button class="btn" id="restart-btn">СЫГРАТЬ СНОВА</button>
+                <button class="btn" id="main-menu-btn">ГЛАВНОЕ МЕНЮ</button>
+                <button class="btn btn-share" id="share-btn">ПОДЕЛИТЬСЯ</button>
             </div>
         </div>
         
-        <div class="shop-menu">
-            <div class="menu">
-                <div class="menu-title">PIXEL SHOP</div>
-                <div class="pixel-art">
-  ██████╗ ██╗  ██╗ █████╗ ██████╗ 
- ██╔══██╗██║  ██║██╔══██╗██╔══██╗
- ██████╔╝███████║███████║██████╔╝
- ██╔═══╝ ██╔══██║██╔══██║██╔══██╗
- ██║     ██║  ██║██║  ██║██║  ██║
- ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝
-                </div>
-                <div class="shop">
-                    <div class="shop-title">ITEMS FOR SALE</div>
-                    <div class="shop-item">
-                        <span>✨ Blue Bird</span>
-                        <span class="price">50 COINS</span>
-                    </div>
-                    <div class="shop-item">
-                        <span>✨ Red Bird</span>
-                        <span class="price">100 COINS</span>
-                    </div>
-                    <div class="shop-item">
-                        <span>✨ Shield</span>
-                        <span class="price">200 COINS</span>
-                    </div>
-                    <div class="shop-item">
-                        <span>✨ Magnet</span>
-                        <span class="price">150 COINS</span>
-                    </div>
-                </div>
-                <button class="btn" id="back-shop-btn">◀️ BACK</button>
-            </div>
-        </div>
-        
-        <div class="leaderboard-menu">
-            <div class="menu">
-                <div class="menu-title">TOP PILOTS</div>
-                <div class="pixel-art">
- ██╗  ██╗██╗   ██╗███████╗██████╗ 
- ██║ ██╔╝╚██╗ ██╔╝██╔════╝██╔══██╗
- █████╔╝  ╚████╔╝ █████╗  ██████╔╝
- ██╔═██╗   ╚██╔╝  ██╔══╝  ██╔══██╗
- ██║  ██╗   ██║   ███████╗██║  ██║
- ╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
-                </div>
-                <div class="leaderboard">
-                    <div class="leaderboard-title">GLOBAL LEADERBOARD</div>
-                    <div class="leaderboard-item">
-                        <span>1. @player1</span>
-                        <span>1,250</span>
-                    </div>
-                    <div class="leaderboard-item">
-                        <span>2. @player2</span>
-                        <span>1,120</span>
-                    </div>
-                    <div class="leaderboard-item">
-                        <span>3. @player3</span>
-                        <span>980</span>
-                    </div>
-                    <div class="leaderboard-item">
-                        <span>4. @player4</span>
-                        <span>850</span>
-                    </div>
-                    <div class="leaderboard-item">
-                        <span>5. @player5</span>
-                        <span>760</span>
-                    </div>
-                </div>
-                <button class="btn" id="back-leaderboard-btn">◀️ BACK</button>
-            </div>
+        <div class="start-screen">
+            <div class="start-text">КАСНИТЕСЬ ЭКРАНА</div>
+            <div class="start-subtext">ЧТОБЫ НАЧАТЬ ПОЛЕТ</div>
         </div>
     </div>
 
