@@ -55,7 +55,6 @@ let animationFrame;
 let pipes = [];
 let xPos = 10;
 let yPos = 0;
-let pipeX = 0;
 let grav = 0.25;
 let jumpForce = -4.5;
 let gap = 120;
@@ -66,6 +65,7 @@ let canvasWidth = window.innerWidth;
 let canvasHeight = window.innerHeight;
 let pipeHeight = 0;
 let fgHeight = 0;
+let scale = 1;
 
 // Обработчики событий
 startBtn.addEventListener('click', startGame);
@@ -92,7 +92,8 @@ function handleKey(e) {
     }
 }
 
-function handleClick() {
+function handleClick(e) {
+    e.preventDefault();
     if (gameActive && gameStarted) {
         jump();
     } else if (gameActive && !gameStarted) {
@@ -112,8 +113,7 @@ function handleTouch(e) {
 // Функции игры
 function init() {
     // Настройка размеров canvas
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
+    resizeCanvas();
     
     // Получение размеров изображений
     pipeHeight = pipeUp.height;
@@ -157,7 +157,6 @@ function startGame() {
     pipes = [];
     xPos = canvasWidth * 0.2;
     yPos = canvasHeight / 2;
-    pipeX = canvasWidth;
     gameActive = true;
     gameStarted = false;
     
@@ -270,9 +269,6 @@ function drawBird() {
 function drawForeground() {
     // Рисуем передний фон внизу экрана
     ctx.drawImage(fg, 0, canvasHeight - fgHeight);
-    
-    // Рисуем передний фон поверх - для правильного наложения
-    ctx.drawImage(fg, 0, canvasHeight - fgHeight * 2);
 }
 
 function updatePipes() {
@@ -377,6 +373,7 @@ function gameOver() {
 function showMainMenu() {
     mainMenu.style.display = 'flex';
     gameOverMenu.style.display = 'none';
+    startScreen.style.display = 'none';
 }
 
 function showLeaderboard() {
@@ -427,8 +424,27 @@ function shareScore() {
 function resizeCanvas() {
     canvasWidth = window.innerWidth;
     canvasHeight = window.innerHeight;
+    
+    // Вычисляем масштаб для корректного отображения
+    const aspectRatio = 288 / 512; // Соотношение сторон оригинальной игры
+    let newWidth = canvasWidth;
+    let newHeight = canvasWidth / aspectRatio;
+    
+    if (newHeight > canvasHeight) {
+        newHeight = canvasHeight;
+        newWidth = canvasHeight * aspectRatio;
+    }
+    
+    // Масштабируем
+    scale = newWidth / 288;
+    
+    // Устанавливаем размеры canvas
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
+    
+    // Сбрасываем позицию птицы
+    xPos = canvasWidth * 0.2;
+    yPos = canvasHeight / 2;
 }
 
 // Обработчик изменения размера окна
