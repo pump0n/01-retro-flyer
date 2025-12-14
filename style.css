@@ -381,6 +381,9 @@ body {
     color: #fff;
     z-index: 50;
     backdrop-filter: blur(3px);
+    pointer-events: auto;
+    cursor: pointer;
+    touch-action: manipulation;
 }
 
 .start-screen.active {
