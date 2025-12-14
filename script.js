@@ -325,12 +325,91 @@ canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
 
-// Также добавляем на start-screen, так как он перекрывает canvas
-if (startScreen) {
-    startScreen.addEventListener('touchstart', handleTouchStart, { passive: false });
-    startScreen.addEventListener('touchend', handleTouchEnd, { passive: false });
-    startScreen.addEventListener('click', handleClick);
+// Универсальный обработчик для start-screen
+function handleStartScreenTouch(e) {
+    // Игнорируем только кнопки и меню
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' ||
+        e.target.closest('.menu') || e.target.closest('.status-bar') ||
+        e.target.closest('.audio-control')) {
+        return;
+    }
+    
+    // Если start-screen активен и игра не началась - обрабатываем любое касание
+    if (startScreen && startScreen.classList.contains('active') && !gameStarted && gameActive) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleInput();
+        if (tg && tg.HapticFeedback) {
+            tg.HapticFeedback.impactOccurred('light');
+        }
+    }
 }
+
+// Также добавляем на start-screen, так как он перекрывает canvas
+// Добавляем обработчики после загрузки DOM
+function setupStartScreenEvents() {
+    if (startScreen) {
+        // Удаляем старые обработчики если они есть
+        startScreen.removeEventListener('touchstart', handleStartScreenTouch);
+        startScreen.removeEventListener('touchend', handleStartScreenTouch);
+        startScreen.removeEventListener('click', handleStartScreenTouch);
+        
+        // Добавляем новые обработчики - упрощенная версия
+        startScreen.addEventListener('touchstart', handleStartScreenTouch, { passive: false });
+        startScreen.addEventListener('touchend', handleStartScreenTouch, { passive: false });
+        startScreen.addEventListener('click', handleStartScreenTouch);
+        
+        // Также добавляем на дочерние элементы
+        const startText = startScreen.querySelector('.start-text');
+        const startSubtext = startScreen.querySelector('.start-subtext');
+        if (startText) {
+            startText.addEventListener('touchstart', handleStartScreenTouch, { passive: false });
+            startText.addEventListener('touchend', handleStartScreenTouch, { passive: false });
+            startText.addEventListener('click', handleStartScreenTouch);
+        }
+        if (startSubtext) {
+            startSubtext.addEventListener('touchstart', handleStartScreenTouch, { passive: false });
+            startSubtext.addEventListener('touchend', handleStartScreenTouch, { passive: false });
+            startSubtext.addEventListener('click', handleStartScreenTouch);
+        }
+    }
+}
+
+// Вызываем после загрузки DOM
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupStartScreenEvents);
+} else {
+    setupStartScreenEvents();
+}
+
+// Дополнительный обработчик на document для надежности (только когда start-screen активен)
+document.addEventListener('touchstart', function(e) {
+    if (startScreen && startScreen.classList.contains('active') && !gameStarted && gameActive) {
+        // Игнорируем только кнопки и меню
+        if (!e.target.closest('button') && !e.target.closest('.menu') && 
+            !e.target.closest('.status-bar') && !e.target.closest('.audio-control')) {
+            e.preventDefault();
+            handleInput();
+            if (tg && tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+        }
+    }
+}, { passive: false });
+
+document.addEventListener('touchend', function(e) {
+    if (startScreen && startScreen.classList.contains('active') && !gameStarted && gameActive) {
+        // Игнорируем только кнопки и меню
+        if (!e.target.closest('button') && !e.target.closest('.menu') && 
+            !e.target.closest('.status-bar') && !e.target.closest('.audio-control')) {
+            e.preventDefault();
+            handleInput();
+            if (tg && tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+        }
+    }
+}, { passive: false });
 
 // Клики для десктопа
 canvas.addEventListener('click', handleClick);
@@ -352,10 +431,13 @@ function handleClick(e) {
     }
     
     // Разрешаем клики по start-screen
-    if (e.target.closest('.start-screen') || e.target === startScreen) {
+    if (e.target.closest('.start-screen') || e.target === startScreen ||
+        (startScreen && startScreen.classList.contains('active'))) {
         e.preventDefault();
         e.stopPropagation();
-        handleInput();
+        if (!gameStarted && gameActive) {
+            handleInput();
+        }
         return;
     }
     
@@ -403,36 +485,32 @@ function handleTouchEnd(e) {
         return;
     }
     
-    // Разрешаем touch по start-screen
-    if (e.target.closest('.start-screen') || e.target === startScreen) {
-        e.preventDefault();
-        e.stopPropagation();
-        const touch = e.changedTouches[0];
-        const touchEndY = touch.clientY;
-        const touchDuration = Date.now() - touchStartTime;
-        const touchDistance = Math.abs(touchEndY - touchStartY);
-        
-        // Обрабатываем только быстрые касания (не свайпы)
-        if (touchDuration < 300 && touchDistance < 50) {
-            handleInput();
-            if (tg && tg.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred('light');
-            }
-        }
+    // Если start-screen активен - используем упрощенный обработчик
+    if (startScreen && startScreen.classList.contains('active')) {
+        handleStartScreenTouch(e);
         return;
     }
     
-    // Для canvas
+    // Для canvas - проверяем на свайп только во время игры
     if (e.target === canvas || e.target.closest('#game-canvas')) {
         e.preventDefault();
         e.stopPropagation();
-        const touch = e.changedTouches[0];
-        const touchEndY = touch.clientY;
-        const touchDuration = Date.now() - touchStartTime;
-        const touchDistance = Math.abs(touchEndY - touchStartY);
         
-        // Обрабатываем только быстрые касания (не свайпы)
-        if (touchDuration < 300 && touchDistance < 50) {
+        if (gameStarted) {
+            // Во время игры - проверяем на свайп
+            const touch = e.changedTouches[0];
+            const touchEndY = touch.clientY;
+            const touchDuration = Date.now() - touchStartTime;
+            const touchDistance = Math.abs(touchEndY - touchStartY);
+            
+            if (touchDuration < 300 && touchDistance < 50) {
+                handleInput();
+                if (tg && tg.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred('light');
+                }
+            }
+        } else {
+            // Если игра еще не началась - обрабатываем любое касание
             handleInput();
             if (tg && tg.HapticFeedback) {
                 tg.HapticFeedback.impactOccurred('light');
@@ -451,6 +529,7 @@ function handleTouchMove(e) {
 
 function handleInput() {
     if (!gameActive) return;
+    
     if (!gameStarted) {
         startPlaying();
     } else {
@@ -468,10 +547,15 @@ function startGame() {
         return;
     }
     
+    // Настраиваем события для start-screen
+    setupStartScreenEvents();
+    
     // Скрыть все меню
     mainMenu.classList.remove('active');
     gameOverMenu.classList.remove('active');
-    startScreen.classList.add('active');
+    if (startScreen) {
+        startScreen.classList.add('active');
+    }
     
     // Сбросить игру
     score = 0;
@@ -511,8 +595,14 @@ function startGame() {
 }
 
 function startPlaying() {
+    if (!gameActive) return;
+    
     gameStarted = true;
-    startScreen.classList.remove('active');
+    if (startScreen) {
+        startScreen.classList.remove('active');
+    }
+    // Сразу делаем первый прыжок
+    jump();
 }
 
 function jump() {
