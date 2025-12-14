@@ -117,6 +117,45 @@ const shopItems = [
 const resources = [bird, bg, fg, pipeUp, pipeBottom, coin];
 let loadedResources = 0;
 
+// Кэш для обработанного изображения монеты (без белого фона)
+let processedCoinImage = null;
+
+function processCoinImage() {
+    if (processedCoinImage || !coin.complete) return;
+    
+    try {
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = coin.naturalWidth || coin.width;
+        tempCanvas.height = coin.naturalHeight || coin.height;
+        
+        // Рисуем изображение
+        tempCtx.drawImage(coin, 0, 0);
+        
+        // Получаем данные пикселей
+        const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+        const data = imageData.data;
+        
+        // Удаляем белый фон (делаем прозрачным)
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            // Если пиксель белый или почти белый - делаем прозрачным
+            if (r > 240 && g > 240 && b > 240) {
+                data[i + 3] = 0; // Устанавливаем альфа-канал в 0 (прозрачный)
+            }
+        }
+        
+        // Сохраняем обработанные данные
+        tempCtx.putImageData(imageData, 0, 0);
+        processedCoinImage = tempCanvas;
+    } catch (e) {
+        console.warn('Could not process coin image:', e);
+        processedCoinImage = coin; // Используем оригинал если обработка не удалась
+    }
+}
+
 function resourceLoaded() {
     loadedResources++;
     const progress = Math.floor((loadedResources / resources.length) * 100);
@@ -129,7 +168,15 @@ function resourceLoaded() {
 }
 
 resources.forEach(res => {
-    res.onload = resourceLoaded;
+    res.onload = function() {
+        // Если это монета - обрабатываем ее после загрузки
+        if (res === coin) {
+            setTimeout(() => {
+                processCoinImage();
+            }, 100);
+        }
+        resourceLoaded();
+    };
     res.onerror = function() {
         console.error(`Failed to load resource: ${res.src}`);
         resourceLoaded();
@@ -724,29 +771,36 @@ function drawPipes() {
     // Получаем реальные размеры canvas
     const canvasHeight = canvas._height || canvas.height / (window.devicePixelRatio || 1);
     
-    const pipeUpHeight = pipeUp.height || 242;
-    const pipeBottomHeight = pipeBottom.height || 242;
-    const fgHeight = fg.height || 112;
+    const pipeUpHeight = pipeUp.naturalHeight || pipeUp.height || 242;
+    const pipeBottomHeight = pipeBottom.naturalHeight || pipeBottom.height || 242;
+    const fgHeight = fg.naturalHeight || fg.height || 112;
     const groundY = canvasHeight - fgHeight;
     
     pipes.forEach(pipe => {
         // Верхняя труба - от самого верха экрана (y=0) до pipe.top
-        // Рисуем перевернутую трубу сверху вниз
+        // Используем pipeUp и переворачиваем его вертикально (шапкой вниз)
         const topPipeHeight = pipe.top;
         if (topPipeHeight > 0) {
-            // Используем перевернутое изображение для верхней трубы
             ctx.save();
+            // Перемещаем в точку, где заканчивается верхняя труба (pipe.top)
             ctx.translate(pipe.x, pipe.top);
+            // Переворачиваем по вертикали (шапкой вниз)
             ctx.scale(1, -1);
-            ctx.drawImage(pipeUp, 0, -pipeUpHeight, pipeWidth, pipeUpHeight);
+            // Рисуем трубу так, чтобы она шла от верха (y=0) до pipe.top
+            // Используем полную высоту изображения, но масштабируем до нужной высоты
+            const sourceHeight = pipeUpHeight;
+            const scaleY = topPipeHeight / sourceHeight;
+            ctx.drawImage(pipeUp, 0, 0, pipeWidth, sourceHeight, 0, 0, pipeWidth, topPipeHeight);
             ctx.restore();
         }
         
         // Нижняя труба - от pipe.top + gap до земли
+        // Используем pipeBottom нормально (шапкой вверх)
         const bottomPipeY = pipe.top + gap;
         const bottomPipeHeight = groundY - bottomPipeY;
         if (bottomPipeHeight > 0 && bottomPipeY < groundY) {
-            // Растягиваем нижнюю трубу до земли
+            // Рисуем нижнюю трубу от gap до земли
+            // Растягиваем изображение до нужной высоты
             ctx.drawImage(pipeBottom, pipe.x, bottomPipeY, pipeWidth, bottomPipeHeight);
         }
     });
@@ -754,6 +808,11 @@ function drawPipes() {
 
 function drawCoins() {
     if (!coin.complete) return;
+    
+    // Обрабатываем изображение монеты один раз
+    if (!processedCoinImage) {
+        processCoinImage();
+    }
     
     coinsList.forEach(coinObj => {
         if (!coinObj.collected) {
@@ -765,11 +824,14 @@ function drawCoins() {
             ctx.translate(coinObj.x, coinObj.y);
             ctx.rotate(rotation);
             
-            // Рисуем монетку (изображение должно быть с прозрачностью)
+            // Рисуем монетку с прозрачностью
             // Используем imageSmoothingEnabled для четкости на мобильных
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(coin, -coinObj.size/2, -coinObj.size/2, coinObj.size, coinObj.size);
+            
+            // Используем обработанное изображение (без белого фона) или оригинал
+            const coinImage = processedCoinImage || coin;
+            ctx.drawImage(coinImage, -coinObj.size/2, -coinObj.size/2, coinObj.size, coinObj.size);
             
             ctx.restore();
         }
