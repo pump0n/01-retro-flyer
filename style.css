@@ -6,6 +6,8 @@
     --pixel-font: 'Press Start 2P', cursive;
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 * {
     margin: 0;
     padding: 0;
@@ -51,6 +53,22 @@ body {
     justify-content: space-between;
     padding: 0 20px;
     font-size: 0.9em;
+}
+
+.audio-control {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.5);
+    border: 2px solid var(--primary);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
 }
 
 .menu {
@@ -199,10 +217,7 @@ body {
     margin: 10px 0;
 }
 
-.pixel-art {
-    animation: flicker 0.15s infinite;
-}
-
+/* Эффект мерцания для ретро-стиля */
 @keyframes flicker {
     0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
         opacity: 1;
@@ -212,6 +227,11 @@ body {
     }
 }
 
+.pixel-art {
+    animation: flicker 0.15s infinite;
+}
+
+/* Эффект скан-линий */
 body::after {
     content: '';
     position: fixed;
@@ -227,19 +247,4 @@ body::after {
     background-size: 100% 4px;
     pointer-events: none;
     z-index: 1000;
-}
-
-@media (max-width: 480px) {
-    #game-canvas {
-        max-height: 60vh;
-    }
-    
-    .menu-title {
-        font-size: 1.8em;
-    }
-    
-    .btn {
-        padding: 10px 20px;
-        font-size: 1em;
-    }
 }
