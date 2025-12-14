@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>RETRO PIXEL FLYER</title>
+    <style>
+        :root {
+            --primary: #ff00ff;
+            --secondary: #00ffff;
+            --background: #0f0f0f;
+            --text: #ffffff;
+            --pixel-font: 'Press Start 2P', cursive;
+        }
+        
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: var(--background);
+            color: var(--text);
+            font-family: var(--pixel-font);
+            font-size: 0.8em;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        #game-canvas {
+            border: 4px solid var(--primary);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+            max-width: 95%;
+            max-height: 70vh;
+            image-rendering: pixelated;
+        }
+        
+        .status-bar {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            font-size: 0.9em;
+        }
+        
+        .menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 15, 15, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 25px;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+            border: 2px solid var(--secondary);
+        }
+        
+        .menu-title {
+            font-size: 2.5em;
+            color: var(--primary);
+            text-shadow: 0 0 10px var(--primary);
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        
+        .menu-subtitle {
+            font-size: 0.9em;
+            color: var(--secondary);
+            margin-bottom: 20px;
+            text-align: center;
+            max-width: 400px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            color: black;
+            border: none;
+            padding: 12px 24px;
+            font-family: var(--pixel-font);
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            text-shadow: 1px 1px 0 #fff;
+            transition: all 0.2s;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-shop {
+            background: linear-gradient(45deg, #ff9900, #ffcc00);
+        }
+        
+        .btn-leaderboard {
+            background: linear-gradient(45deg, #33cc33, #66ff66);
+        }
+        
+        .leaderboard {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid var(--secondary);
+            width: 90%;
+            max-width: 400px;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 10px;
+        }
+        
+        .leaderboard-title {
+            text-align: center;
+            font-size: 1.3em;
+            color: var(--secondary);
+            margin-bottom: 15px;
+        }
+        
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px dashed #555;
+        }
+        
+        .shop {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ff9900;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 10px;
+        }
+        
+        .shop-title {
+            text-align: center;
+            font-size: 1.3em;
+            color: #ffcc00;
+            margin-bottom: 15px;
+        }
+        
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #444;
+        }
+        
+        .pixel-art {
+            font-family: monospace;
+            line-height: 1.2;
+            margin: 5px 0;
+            white-space: pre;
+            font-size: 1.2em;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2em;
+            color: var(--primary);
+        }
+        
+        .game-over {
+            background: rgba(0, 0, 0, 0.9);
+            border: 4px solid var(--primary);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 400px;
+        }
+        
+        .game-over-score {
+            font-size: 2em;
+            color: var(--secondary);
+            margin: 10px 0;
+        }
+        
+        /* Эффект мерцания для ретро-стиля */
+        @keyframes flicker {
+            0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+                opacity: 1;
+            }
+            20%, 24%, 55% {
+                opacity: 0.8;
+            }
+        }
+        
+        .pixel-art {
+            animation: flicker 0.15s infinite;
+        }
+        
+        /* Эффект скан-линий */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.1) 50%,
+                transparent 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="status-bar">
+        <div class="score">SCORE: 0</div>
+        <div class="coins">COINS: 0</div>
+    </div>
+    
+    <div id="game-container">
+        <canvas id="game-canvas" width="320" height="480"></canvas>
+        
+        <div class="main-menu">
+            <div class="menu">
+                <div class="menu-title">RETRO PIXEL FLYER</div>
+                <div class="pixel-art">
+ ██████╗ ██████╗ ██╗  ██╗███████╗██████╗ 
+██╔════╝██╔═══██╗██║ ██╔╝██╔════╝██╔══██╗
+██║     ██║   ██║█████╔╝ █████╗  ██████╔╝
+██║     ██║   ██║██╔═██╗ ██╔══╝  ██╔══██╗
+╚██████╗╚██████╔╝██║  ██╗███████╗██║  ██║
+ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
+                </div>
+                <div class="menu-subtitle">Бесконечный полет в пиксельном мире. Собирай монеты, избегай препятствий, покупай улучшения!</div>
+                <button class="btn" id="start-btn">▶️ START GAME</button>
+                <button class="btn btn-shop" id="shop-btn">🏪 SHOP</button>
+                <button class="btn btn-leaderboard" id="leaderboard-btn">🏆 LEADERBOARD</button>
+                <div class="pixel-art" style="margin-top: 20px; font-size: 0.8em;">
+CONTROLS: TAP OR SPACEBAR
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-over-menu" style="display: none;">
+            <div class="game-over">
+                <div class="menu-title">GAME OVER</div>
+                <div class="pixel-art">
+   ▄████  ▄▄▄       ███▄ ▄███▓▓█████ 
+  ██▒ ▀█▒▒████▄    ▓██▒▀█▀ ██▒▓█   ▀ 
+ ▒██░▄▄▄░▒██  ▀█▄  ▓██    ▓██░▒███   
+ ░▓█  ██▓░██▄▄▄▄██ ▒██    ▒██ ▒▓█  ▄ 
+ ░▒▓███▀▒ ▓█   ▓██▒▒██▒   ░██▒░▒████▒
+  ░▒   ▒  ▒▒   ▓▒█░░ ▒░   ░  ░░░ ▒░ ░
+   ░   ░   ▒   ▒▒ ░░  ░      ░ ░ ░  ░
+ ░ ░   ░   ░   ▒   ░      ░      ░   
+       ░       ░  ░       ░      ░  ░
+                </div>
+                <div class="game-over-score">SCORE: <span id="final-score">0</span></div>
+                <div class="game-over-coins">+<span id="earned-coins">0</span> COINS EARNED</div>
+                <button class="btn" id="restart-btn" style="margin-top: 15px;">🔄 PLAY AGAIN</button>
+                <button class="btn btn-leaderboard" id="submit-score-btn" style="margin-top: 10px;">📊 SUBMIT SCORE</button>
+            </div>
+        </div>
+        
+        <div class="shop-menu" style="display: none;">
+            <div class="menu">
+                <div class="menu-title">PIXEL SHOP</div>
+                <div class="pixel-art">
+  ██████╗ ██╗  ██╗ █████╗ ██████╗ 
+ ██╔══██╗██║  ██║██╔══██╗██╔══██╗
+ ██████╔╝███████║███████║██████╔╝
+ ██╔═══╝ ██╔══██║██╔══██║██╔══██╗
+ ██║     ██║  ██║██║  ██║██║  ██║
+ ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝
+                </div>
+                <div class="shop">
+                    <div class="shop-title">ITEMS FOR SALE</div>
+                    <div class="shop-item">
+                        <span>✨ Blue Bird</span>
+                        <span class="price">50 COINS</span>
+                    </div>
+                    <div class="shop-item">
+                        <span>✨ Red Bird</span>
+                        <span class="price">100 COINS</span>
+                    </div>
+                    <div class="shop-item">
+                        <span>✨ Shield</span>
+                        <span class="price">200 COINS</span>
+                    </div>
+                    <div class="shop-item">
+                        <span>✨ Magnet</span>
+                        <span class="price">150 COINS</span>
+                    </div>
+                </div>
+                <button class="btn" id="back-shop-btn">◀️ BACK</button>
+            </div>
+        </div>
+        
+        <div class="leaderboard-menu" style="display: none;">
+            <div class="menu">
+                <div class="menu-title">TOP PILOTS</div>
+                <div class="pixel-art">
+ ██╗  ██╗██╗   ██╗███████╗██████╗ 
+ ██║ ██╔╝╚██╗ ██╔╝██╔════╝██╔══██╗
+ █████╔╝  ╚████╔╝ █████╗  ██████╔╝
+ ██╔═██╗   ╚██╔╝  ██╔══╝  ██╔══██╗
+ ██║  ██╗   ██║   ███████╗██║  ██║
+ ╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
+                </div>
+                <div class="leaderboard">
+                    <div class="leaderboard-title">GLOBAL LEADERBOARD</div>
+                    <div class="leaderboard-item">
+                        <span>1. @player1</span>
+                        <span>1,250</span>
+                    </div>
+                    <div class="leaderboard-item">
+                        <span>2. @player2</span>
+                        <span>1,120</span>
+                    </div>
+                    <div class="leaderboard-item">
+                        <span>3. @player3</span>
+                        <span>980</span>
+                    </div>
+                    <div class="leaderboard-item">
+                        <span>4. @player4</span>
+                        <span>850</span>
+                    </div>
+                    <div class="leaderboard-item">
+                        <span>5. @player5</span>
+                        <span>760</span>
+                    </div>
+                </div>
+                <button class="btn" id="back-leaderboard-btn">◀️ BACK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+        
+        // Элементы DOM
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.querySelector('.score');
+        const coinsElement = document.querySelector('.coins');
+        const startBtn = document.getElementById('start-btn');
+        const shopBtn = document.getElementById('shop-btn');
+        const leaderboardBtn = document.getElementById('leaderboard-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const submitScoreBtn = document.getElementById('submit-score-btn');
+        const backShopBtn = document.getElementById('back-shop-btn');
+        const backLeaderboardBtn = document.getElementById('back-leaderboard-btn');
+        const finalScoreElement = document.getElementById('final-score');
+        const earnedCoinsElement = document.getElementById('earned-coins');
+        
+        // Меню
+        const mainMenu = document.querySelector('.main-menu');
+        const gameOverMenu = document.querySelector('.game-over-menu');
+        const shopMenu = document.querySelector('.shop-menu');
+        const leaderboardMenu = document.querySelector('.leaderboard-menu');
+        
+        // Игровые переменные
+        let score = 0;
+        let coins = 0;
+        let gameActive = false;
+        let animationFrame;
+        let obstacles = [];
+        let coinsArray = [];
+        let bird = {
+            x: 50,
+            y: canvas.height / 2,
+            width: 20,
+            height: 15,
+            velocity: 0,
+            gravity: 0.5,
+            jumpForce: -8,
+            color: '#ff00ff'
+        };
+        
+        // Загрузка данных из localStorage
+        let gameData = JSON.parse(localStorage.getItem('retroPixelFlyer')) || {
+            totalCoins: 0,
+            totalScore: 0,
+            items: {
+                blueBird: false,
+                redBird: false,
+                shield: false,
+                magnet: false
+            },
+            achievements: {
+                firstFlight: false,
+                coinCollector: false,
+                highFlyer: false,
+                pixelMaster: false
+            }
+        };
+        
+        // Счетчик кадров для генерации препятствий
+        let frameCount = 0;
+        
+        // Обработчики событий
+        startBtn.addEventListener('click', startGame);
+        shopBtn.addEventListener('click', showShop);
+        leaderboardBtn.addEventListener('click', showLeaderboard);
+        restartBtn.addEventListener('click', startGame);
+        submitScoreBtn.addEventListener('click', submitScore);
+        backShopBtn.addEventListener('click', showMainMenu);
+        backLeaderboardBtn.addEventListener('click', showMainMenu);
+        
+        // Управление игрой
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && gameActive) {
+                bird.velocity = bird.jumpForce;
+            }
+        });
+        
+        canvas.addEventListener('click', () => {
+            if (gameActive) {
+                bird.velocity = bird.jumpForce;
+            }
+        });
+        
+        // Функции игры
+        function startGame() {
+            // Скрыть главное меню
+            mainMenu.style.display = 'none';
+            gameOverMenu.style.display = 'none';
+            shopMenu.style.display = 'none';
+            leaderboardMenu.style.display = 'none';
+            
+            // Сбросить игру
+            score = 0;
+            coins = 0;
+            obstacles = [];
+            coinsArray = [];
+            bird.y = canvas.height / 2;
+            bird.velocity = 0;
+            frameCount = 0;
+            gameActive = true;
+            
+            // Обновить интерфейс
+            updateScore();
+            
+            // Запустить игровой цикл
+            gameLoop();
+        }
+        
+        function gameLoop() {
+            if (!gameActive) return;
+            
+            // Очистить canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Фон с градиентом
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#000033');
+            gradient.addColorStop(1, '#000011');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Звезды на фоне
+            drawStars();
+            
+            // Добавить препятствие каждые 100 кадров
+            frameCount++;
+            if (frameCount % 100 === 0) {
+                addObstacle();
+            }
+            
+            // Добавить монету каждые 50 кадров
+            if (frameCount % 50 === 0) {
+                addCoin();
+            }
+            
+            // Обновить препятствия
+            updateObstacles();
+            
+            // Обновить монеты
+            updateCoins();
+            
+            // Обновить птицу
+            updateBird();
+            
+            // Проверить столкновения
+            checkCollisions();
+            
+            // Обновить счет
+            score++;
+            updateScore();
+            
+            // Запустить следующий кадр
+            animationFrame = requestAnimationFrame(gameLoop);
+        }
+        
+        function drawStars() {
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < 50; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const size = Math.random() * 2;
+                ctx.fillRect(x, y, size, size);
+            }
+        }
+        
+        function addObstacle() {
+            const gap = 120;
+            const topHeight = Math.random() * (canvas.height - gap - 40) + 20;
+            
+            obstacles.push({
+                x: canvas.width,
+                width: 40,
+                topHeight: topHeight,
+                bottomY: topHeight + gap,
+                passed: false
+            });
+        }
+        
+        function addCoin() {
+            coinsArray.push({
+                x: canvas.width,
+                y: Math.random() * (canvas.height - 30) + 15,
+                width: 12,
+                height: 12,
+                collected: false
+            });
+        }
+        
+        function updateObstacles() {
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obstacle = obstacles[i];
+                obstacle.x -= 3;
+                
+                // Нарисовать верхнее препятствие
+                ctx.fillStyle = '#00ffff';
+                ctx.fillRect(obstacle.x, 0, obstacle.width, obstacle.topHeight);
+                
+                // Нарисовать нижнее препятствие
+                ctx.fillRect(obstacle.x, obstacle.bottomY, obstacle.width, canvas.height - obstacle.bottomY);
+                
+                // Проверить, прошла ли птица препятствие
+                if (!obstacle.passed && obstacle.x + obstacle.width < bird.x) {
+                    obstacle.passed = true;
+                    score += 10;
+                    updateScore();
+                }
+                
+                // Удалить препятствие, если оно вышло за экран
+                if (obstacle.x + obstacle.width < 0) {
+                    obstacles.splice(i, 1);
+                }
+            }
+        }
+        
+        function updateCoins() {
+            for (let i = coinsArray.length - 1; i >= 0; i--) {
+                const coin = coinsArray[i];
+                coin.x -= 3;
+                
+                // Нарисовать монету
+                ctx.fillStyle = '#ffd700';
+                ctx.beginPath();
+                ctx.arc(coin.x + coin.width/2, coin.y + coin.height/2, coin.width/2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Проверить сбор монеты
+                if (!coin.collected && 
+                    bird.x < coin.x + coin.width &&
+                    bird.x + bird.width > coin.x &&
+                    bird.y < coin.y + coin.height &&
+                    bird.y + bird.height > coin.y) {
+                    coins++;
+                    coin.collected = true;
+                    coinsArray.splice(i, 1);
+                    updateCoinsDisplay();
+                }
+                
+                // Удалить монету, если она вышла за экран
+                if (coin.x + coin.width < 0) {
+                    coinsArray.splice(i, 1);
+                }
+            }
+        }
+        
+        function updateBird() {
+            // Применить гравитацию
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+            
+            // Ограничения по высоте
+            if (bird.y < 0) {
+                bird.y = 0;
+                bird.velocity = 0;
+            }
+            
+            if (bird.y + bird.height > canvas.height) {
+                gameOver();
+                return;
+            }
+            
+            // Нарисовать птицу
+            ctx.fillStyle = bird.color;
+            ctx.beginPath();
+            ctx.moveTo(bird.x + bird.width, bird.y + bird.height/2);
+            ctx.lineTo(bird.x + bird.width/2, bird.y);
+            ctx.lineTo(bird.x, bird.y + bird.height/2);
+            ctx.lineTo(bird.x + bird.width/2, bird.y + bird.height);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Добавить глаз
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(bird.x + bird.width/1.5, bird.y + bird.height/3, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(bird.x + bird.width/1.5, bird.y + bird.height/3, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function checkCollisions() {
+            // Проверить столкновения с препятствиями
+            for (const obstacle of obstacles) {
+                if (bird.x + bird.width > obstacle.x && bird.x < obstacle.x + obstacle.width) {
+                    if (bird.y < obstacle.topHeight || bird.y + bird.height > obstacle.bottomY) {
+                        gameOver();
+                        return;
+                    }
+                }
+            }
+        }
+        
+        function gameOver() {
+            gameActive = false;
+            cancelAnimationFrame(animationFrame);
+            
+            // Обновить данные игры
+            gameData.totalScore += score;
+            gameData.totalCoins += coins;
+            localStorage.setItem('retroPixelFlyer', JSON.stringify(gameData));
+            
+            // Показать меню Game Over
+            finalScoreElement.textContent = score;
+            earnedCoinsElement.textContent = coins;
+            gameOverMenu.style.display = 'flex';
+        }
+        
+        function updateScore() {
+            scoreElement.textContent = `SCORE: ${score}`;
+        }
+        
+        function updateCoinsDisplay() {
+            coinsElement.textContent = `COINS: ${coins}`;
+        }
+        
+        function showShop() {
+            mainMenu.style.display = 'none';
+            shopMenu.style.display = 'flex';
+        }
+        
+        function showLeaderboard() {
+            mainMenu.style.display = 'none';
+            leaderboardMenu.style.display = 'flex';
+        }
+        
+        function showMainMenu() {
+            mainMenu.style.display = 'flex';
+            shopMenu.style.display = 'none';
+            leaderboardMenu.style.display = 'none';
+            gameOverMenu.style.display = 'none';
+        }
+        
+        function submitScore() {
+            // Отправить результат в Telegram бота
+            tg.sendData(JSON.stringify({
+                action: "game_score",
+                score: score,
+                coins: coins
+            }));
+            
+            tg.showAlert(`🏆 SCORE SUBMITTED!\nYou earned ${coins} coins!`);
+            
+            // Показать главное меню
+            showMainMenu();
+        }
+        
+        // Инициализация игры
+        function init() {
+            // Показать главное меню
+            mainMenu.style.display = 'flex';
+            
+            // Обновить отображение монет
+            coinsElement.textContent = `COINS: ${gameData.totalCoins}`;
+        }
+        
+        // Запуск игры
+        window.onload = init;
+    </script>
+</body>
+</html>
