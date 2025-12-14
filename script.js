@@ -571,6 +571,7 @@ function handleTouchMove(e) {
 function handleInput() {
     if (!gameActive) return;
     
+    // Обработка сразу, без задержек
     if (!gameStarted) {
         startPlaying();
     } else {
@@ -656,11 +657,18 @@ function jump() {
     // Ограничиваем максимальную скорость вверх
     if (velocity < -12) velocity = -12;
     
-    // Воспроизводим звук асинхронно, чтобы не блокировать
+    // Воспроизводим звук асинхронно, чтобы не блокировать основной поток
     if (isSoundOn) {
-        const sound = jumpSound.cloneNode();
-        sound.volume = 0.3;
-        sound.play().catch(() => {});
+        // Используем микротаск для неблокирующего воспроизведения
+        Promise.resolve().then(() => {
+            try {
+                const sound = jumpSound.cloneNode();
+                sound.volume = 0.2;
+                sound.play().catch(() => {});
+            } catch (e) {
+                // Игнорируем ошибки звука
+            }
+        });
     }
 }
 
@@ -698,44 +706,42 @@ function addPipe() {
             });
             lastPipeX = canvasWidth;
             
-            // Добавляем монетку между трубами (всегда, в центре зазора)
-            coinsList.push({
-                x: canvasWidth + pipeWidth / 2,
-                y: topHeight + gap / 2,
-                collected: false,
-                size: 24,
-                value: 1
-            });
+            // Добавляем монетку между трубами (не всегда, для разнообразия - 70% вероятность)
+            if (Math.random() > 0.3) {
+                coinsList.push({
+                    x: canvasWidth + pipeWidth / 2,
+                    y: topHeight + gap / 2,
+                    collected: false,
+                    size: 24,
+                    value: 1
+                });
+            }
         }
         
-        // Добавляем 1-2 монетки в труднодоступных местах (редко, не между трубами)
-        const difficultCoinsCount = Math.random() > 0.85 ? (Math.random() > 0.5 ? 2 : 1) : 0;
-        for (let i = 0; i < difficultCoinsCount; i++) {
+        // Добавляем 1 монетку в труднодоступном месте (очень редко - 5% вероятность)
+        if (Math.random() > 0.95) {
             const canvasHeight = canvas._height || canvas.height / (window.devicePixelRatio || 1);
             const fgHeight = fg.naturalHeight || fg.height || 112;
             const safeZone = 20;
             
-            // Размещаем монетки в труднодоступных местах:
-            // 1. Очень близко к верху (труднодоступно)
-            // 2. Очень близко к низу (труднодоступно)
-            
+            // Размещаем монетку в труднодоступном месте:
             const coinType = Math.random();
             let coinY;
             
             if (coinType < 0.5) {
                 // Очень близко к верху
-                coinY = safeZone + Math.random() * 30;
+                coinY = safeZone + Math.random() * 25;
             } else {
                 // Очень близко к низу
-                coinY = canvasHeight - fgHeight - safeZone - 30 + Math.random() * 30;
+                coinY = canvasHeight - fgHeight - safeZone - 25 + Math.random() * 25;
             }
             
             coinsList.push({
-                x: canvasWidth + 100 + Math.random() * 200 + i * 50,
+                x: canvasWidth + 150 + Math.random() * 100,
                 y: coinY,
                 collected: false,
                 size: 28,
-                value: 2 // Более ценные монетки в труднодоступных местах
+                value: 2 // Более ценная монетка в труднодоступном месте
             });
         }
 }
@@ -834,7 +840,7 @@ function drawPipes() {
         if (topPipeHeight > pipeHeadHeight) {
             const topPipeBodyHeight = topPipeHeight - pipeHeadHeight;
             
-            // Рисуем тело верхней трубы от верха до шапки
+            // Рисуем тело верхней трубы от верха (y=0) до шапки
             // Тайлим тело трубы если нужно
             let bodyY = 0;
             let remainingHeight = topPipeBodyHeight;
@@ -847,6 +853,7 @@ function drawPipes() {
             }
             
             // Рисуем шапку верхней трубы внизу (у зазора, перед gap)
+            // Шапка находится прямо перед зазором
             ctx.drawImage(pipeUp, 0, 0, pipeWidth, pipeHeadHeight,
                          pipe.x, pipe.top - pipeHeadHeight, pipeWidth, pipeHeadHeight);
         }
@@ -856,7 +863,7 @@ function drawPipes() {
         const bottomPipeY = pipe.top + gap;
         const bottomPipeHeight = groundY - bottomPipeY;
         if (bottomPipeHeight > pipeHeadHeight && bottomPipeY < groundY) {
-            // Рисуем шапку нижней трубы вверху (у зазора, после gap)
+            // Рисуем шапку нижней трубы вверху (у зазора, сразу после gap)
             ctx.drawImage(pipeBottom, 0, 0, pipeWidth, pipeHeadHeight,
                          pipe.x, bottomPipeY, pipeWidth, pipeHeadHeight);
             
@@ -884,25 +891,20 @@ function drawCoins() {
         processCoinImage();
     }
     
+    const coinImage = processedCoinImage || coin;
+    
+    // Оптимизация: используем один save/restore для всех монет
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    
     coinsList.forEach(coinObj => {
         if (!coinObj.collected) {
-            // Анимация вращения монетки
-            const rotation = Math.sin(frame / 10) * 0.2;
+            // Анимация вращения монетки (упрощенная)
+            const rotation = Math.sin(frame / 10) * 0.15;
             ctx.save();
-            
-            // Перемещаем в центр монетки
             ctx.translate(coinObj.x, coinObj.y);
             ctx.rotate(rotation);
-            
-            // Рисуем монетку с прозрачностью
-            // Используем imageSmoothingEnabled для четкости на мобильных
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
-            
-            // Используем обработанное изображение (без белого фона) или оригинал
-            const coinImage = processedCoinImage || coin;
             ctx.drawImage(coinImage, -coinObj.size/2, -coinObj.size/2, coinObj.size, coinObj.size);
-            
             ctx.restore();
         }
     });
@@ -933,15 +935,12 @@ function gameLoop(currentTime = performance.now()) {
     if (!gameActive) return;
     
     // Обновляем кэш размеров canvas (только при необходимости)
-    if (cachedCanvasWidth === 0 || frame % 60 === 0) {
+    if (cachedCanvasWidth === 0 || frame % 120 === 0) {
         cachedCanvasWidth = canvas._width || canvas.width / (window.devicePixelRatio || 1);
         cachedCanvasHeight = canvas._height || canvas.height / (window.devicePixelRatio || 1);
         const fgHeight = fg.naturalHeight || fg.height || 112;
         cachedGroundY = cachedCanvasHeight - fgHeight;
     }
-    
-    // Обновляем каждый кадр для максимальной плавности
-    lastTime = currentTime;
     
     // Очистка canvas - используем полные размеры canvas (с учетом DPR)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -977,7 +976,7 @@ function gameLoop(currentTime = performance.now()) {
 function updateGame() {
     frame++;
     
-    // Обновление позиции птицы
+    // Обновление позиции птицы (первым для плавности)
     updateBird();
     
     // Обновление позиции труб (включает добавление новых)
@@ -986,14 +985,18 @@ function updateGame() {
     // Обновление позиции монет
     updateCoins();
     
-    // Проверка столкновений с трубами
+    // Проверка столкновений с трубами (последним)
     checkCollisions();
     
-    // Обновление счета
-    updateScore();
+    // Обновление счета (редко, не каждый кадр)
+    if (frame % 5 === 0) {
+        updateScore();
+    }
     
-    // Проверка достижений
-    checkAchievements();
+    // Проверка достижений (редко)
+    if (frame % 10 === 0) {
+        checkAchievements();
+    }
 }
 
 function updateBird() {
@@ -1027,9 +1030,11 @@ function updateBird() {
 
 function updatePipes() {
     // Увеличиваем скорость игры со временем
-    const speedMultiplier = 1 + (score * 0.02); // Увеличиваем скорость на 2% за каждую трубу
+    const speedMultiplier = 1 + (score * 0.02);
     const currentSpeed = gameSpeed * speedMultiplier;
+    const canvasWidth = cachedCanvasWidth || canvas._width || canvas.width / (window.devicePixelRatio || 1);
     
+    // Обновляем позиции труб
     for (let i = pipes.length - 1; i >= 0; i--) {
         pipes[i].x -= currentSpeed;
         
@@ -1045,9 +1050,10 @@ function updatePipes() {
         }
     }
     
-    // Добавляем новые трубы по мере необходимости
-    const canvasWidth = canvas._width || canvas.width / (window.devicePixelRatio || 1);
-    if (pipes.length === 0 || (pipes.length > 0 && pipes[pipes.length - 1].x < canvasWidth - 250)) {
+    // Бесконечная генерация труб - добавляем новые по мере прохождения
+    // Всегда держим минимум 2-3 трубы впереди для бесконечной игры
+    const lastPipeX = pipes.length > 0 ? pipes[pipes.length - 1].x : 0;
+    if (pipes.length === 0 || lastPipeX < canvasWidth - 100) {
         addPipe();
     }
 }
