@@ -1,440 +1,277 @@
-// Инициализация Telegram WebApp
-const tg = window.Telegram.WebApp;
-if (tg) {
-    tg.expand();
-    tg.ready();
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-// Элементы DOM
-const canvas = document.getElementById('game-canvas');
-const ctx = canvas.getContext('2d');
-const loadingScreen = document.getElementById('loading-screen');
-const mainMenu = document.querySelector('.main-menu');
-const gameOverMenu = document.querySelector('.game-over-menu');
-const startScreen = document.querySelector('.start-screen');
-const startBtn = document.getElementById('start-btn');
-const restartBtn = document.getElementById('restart-btn');
-const mainMenuBtn = document.getElementById('main-menu-btn');
-const leaderboardBtn = document.getElementById('leaderboard-btn');
-const audioBtn = document.getElementById('audio-btn');
-const shareBtn = document.getElementById('share-btn');
-const finalScoreElement = document.getElementById('final-score');
-const scoreElement = document.querySelector('.score');
-const bestScoreElement = document.querySelector('.best-score');
-
-// Графические ресурсы
-const bird = new Image();
-const bg = new Image();
-const fg = new Image();
-const pipeUp = new Image();
-const pipeBottom = new Image();
-
-// Звуковые файлы
-const bgMusic = new Audio();
-const jumpSound = new Audio();
-const coinSound = new Audio();
-const hitSound = new Audio();
-
-// Загрузка ресурсов
-bird.src = 'assets/flappy_bird_bird.png';
-bg.src = 'assets/bg.png';
-fg.src = 'assets/fg.png';
-pipeUp.src = 'assets/pipeUp.png';
-pipeBottom.src = 'assets/pipeBottom.png';
-
-bgMusic.src = 'assets/music.mp3';
-jumpSound.src = 'assets/jump.mp3';
-coinSound.src = 'assets/coin.mp3';
-hitSound.src = 'assets/hit.mp3';
-
-// Игровые переменные
-let score = 0;
-let bestScore = 0;
-let gameActive = false;
-let animationFrame;
-let pipes = [];
-let xPos = 10;
-let yPos = 0;
-let grav = 0.25;
-let jumpForce = -4.5;
-let gap = 120;
-let frameCount = 0;
-let isSoundEnabled = true;
-let gameStarted = false;
-let canvasWidth = window.innerWidth;
-let canvasHeight = window.innerHeight;
-let scale = 1;
-
-// Обработчики событий
-startBtn.addEventListener('click', startGame);
-restartBtn.addEventListener('click', startGame);
-mainMenuBtn.addEventListener('click', showMainMenu);
-leaderboardBtn.addEventListener('click', showLeaderboard);
-audioBtn.addEventListener('click', toggleSound);
-shareBtn.addEventListener('click', shareScore);
-
-// Управление игрой
-document.addEventListener('keydown', handleKey);
-canvas.addEventListener('click', handleClick);
-canvas.addEventListener('touchstart', handleTouch);
-
-// Обработчики событий
-function handleKey(e) {
-    if (e.code === 'Space' || e.key === ' ') {
-        e.preventDefault();
-        if (gameActive && gameStarted) {
-            jump();
-        } else if (gameActive && !gameStarted) {
-            startPlaying();
-        }
-    }
+body {
+    background: #87CEEB;
+    color: #333;
+    font-family: 'Press Start 2P', cursive;
+    overflow: hidden;
+    height: 100vh;
+    position: relative;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
-function handleClick(e) {
-    e.preventDefault();
-    if (gameActive && gameStarted) {
-        jump();
-    } else if (gameActive && !gameStarted) {
-        startPlaying();
-    }
+#loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #87CEEB;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity 0.3s;
 }
 
-function handleTouch(e) {
-    e.preventDefault();
-    if (gameActive && gameStarted) {
-        jump();
-    } else if (gameActive && !gameStarted) {
-        startPlaying();
-    }
+.logo {
+    text-align: center;
+    margin-bottom: 30px;
 }
 
-// Функции игры
-function init() {
-    // Настройка размеров canvas
-    resizeCanvas();
-    
-    // Загрузка рекорда из localStorage
-    bestScore = parseInt(localStorage.getItem('retroPixelFlyerBestScore') || '0');
-    bestScoreElement.textContent = `РЕКОРД: ${bestScore}`;
-    
-    // Запуск анимации загрузки
-    animateLoading();
+.logo-text {
+    font-size: 2.5em;
+    color: #FF4500;
+    letter-spacing: 2px;
+    text-shadow: 0 0 5px rgba(255, 69, 0, 0.5);
 }
 
-function animateLoading() {
-    let progress = 0;
-    const interval = setInterval(() => {
-        progress += 5;
-        document.getElementById('loading-progress').style.width = `${progress}%`;
-        
-        if (progress >= 100) {
-            clearInterval(interval);
-            setTimeout(() => {
-                loadingScreen.style.opacity = '0';
-                setTimeout(() => {
-                    loadingScreen.style.display = 'none';
-                    mainMenu.style.display = 'flex';
-                }, 300);
-            }, 300);
-        }
-    }, 30);
+.logo-subtext {
+    font-size: 2em;
+    color: #FFD700;
+    letter-spacing: 2px;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
 }
 
-function startGame() {
-    // Скрыть все меню
-    mainMenu.style.display = 'none';
-    gameOverMenu.style.display = 'none';
-    startScreen.style.display = 'flex';
-    
-    // Сбросить игру
-    score = 0;
-    pipes = [];
-    xPos = canvasWidth * 0.2;
-    yPos = canvasHeight / 2;
-    gameActive = true;
-    gameStarted = false;
-    
-    // Добавить первые трубы
-    addPipe();
-    
-    // Обновить интерфейс
-    scoreElement.textContent = `СЧЕТ: ${score}`;
-    
-    // Запустить музыку
-    if (isSoundEnabled) {
-        bgMusic.currentTime = 0;
-        bgMusic.loop = true;
-        bgMusic.play().catch(e => console.log('Autoplay blocked'));
-    }
-    
-    // Запустить игровой цикл
-    gameLoop();
+.loading-bar {
+    width: 250px;
+    height: 15px;
+    background: rgba(255, 255, 255, 0.3);
+    border: 2px solid #333;
+    border-radius: 0;
+    overflow: hidden;
+    margin: 20px 0;
 }
 
-function startPlaying() {
-    gameStarted = true;
-    startScreen.style.display = 'none';
+#loading-progress {
+    width: 0%;
+    height: 100%;
+    background: #FFD700;
+    transition: width 0.3s;
 }
 
-function jump() {
-    yPos += jumpForce;
-    if (isSoundEnabled) {
-        jumpSound.currentTime = 0;
-        jumpSound.play();
-    }
+.loading-text {
+    font-size: 1em;
+    color: #333;
+    letter-spacing: 1px;
 }
 
-function addPipe() {
-    const pipeY = Math.floor(Math.random() * (canvasHeight - gap - fg.height - 100)) + 50;
-    pipes.push({
-        x: canvasWidth,
-        y: pipeY,
-        passed: false
-    });
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation; /* Изменено для лучшего touch в Telegram */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 }
 
-function gameLoop() {
-    if (!gameActive) return;
-    
-    // Очистка canvas
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-    
-    // Отрисовка фона
-    drawBackground();
-    
-    // Отрисовка труб
-    drawPipes();
-    
-    // Отрисовка птицы
-    drawBird();
-    
-    // Отрисовка переднего фона
-    drawForeground();
-    
-    // Если игра не началась - показать стартовый экран
-    if (!gameStarted) {
-        animationFrame = requestAnimationFrame(gameLoop);
-        return;
-    }
-    
-    // Обновление позиции труб
-    updatePipes();
-    
-    // Обновление позиции птицы
-    updateBird();
-    
-    // Проверка столкновений
-    checkCollisions();
-    
-    // Обновление счета
-    updateScore();
-    
-    // Запуск следующего кадра
-    animationFrame = requestAnimationFrame(gameLoop);
+#game-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: #87CEEB; /* Fallback для не загруженного bg */
 }
 
-function drawBackground() {
-    // Рисуем фон несколько раз для заполнения всего canvas
-    const cols = Math.ceil(canvasWidth / bg.width) + 1;
-    const rows = Math.ceil(canvasHeight / bg.height) + 1;
-    
-    for (let c = 0; c < cols; c++) {
-        for (let r = 0; r < rows; r++) {
-            ctx.drawImage(bg, c * bg.width, r * bg.height);
-        }
-    }
+.status-bar {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    z-index: 20;
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+    display: flex;
+    gap: 20px;
 }
 
-function drawPipes() {
-    pipes.forEach(pipe => {
-        // Верхняя труба
-        ctx.drawImage(pipeUp, pipe.x, pipe.y - pipeUp.height);
-        
-        // Нижняя труба
-        const bottomY = pipe.y + gap;
-        ctx.drawImage(pipeBottom, pipe.x, bottomY);
-    });
+.audio-control {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 2px solid #333;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 20;
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+    user-select: none;
 }
 
-function drawBird() {
-    ctx.drawImage(bird, xPos, yPos);
+.main-menu, .game-over-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    display: none; /* По умолчанию скрыто */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(5px); /* Лучше для Telegram */
 }
 
-function drawForeground() {
-    // Рисуем передний фон внизу экрана
-    ctx.drawImage(fg, 0, canvasHeight - fg.height);
+.main-menu.active, .game-over-menu.active {
+    display: flex;
 }
 
-function updatePipes() {
-    frameCount++;
-    
-    // Добавление новых труб
-    if (frameCount % 100 === 0) {
-        addPipe();
-    }
-    
-    // Обновление позиции труб
-    for (let i = pipes.length - 1; i >= 0; i--) {
-        pipes[i].x -= 2;
-        
-        // Проверка прохождения трубы
-        if (!pipes[i].passed && pipes[i].x + pipeUp.width < xPos) {
-            pipes[i].passed = true;
-            if (isSoundEnabled) {
-                coinSound.currentTime = 0;
-                coinSound.play();
-            }
-        }
-        
-        // Удаление труб за пределами экрана
-        if (pipes[i].x + pipeUp.width < 0) {
-            pipes.splice(i, 1);
-        }
-    }
+.menu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 25px;
+    text-align: center;
 }
 
-function updateBird() {
-    if (gameStarted) {
-        yPos += grav;
-    }
+.menu-title {
+    font-size: 32px;
+    color: #FF4500;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-shadow: 0 0 5px rgba(255, 69, 0, 0.3);
 }
 
-function checkCollisions() {
-    // Проверка столкновения с землей
-    if (yPos + bird.height > canvasHeight - fg.height) {
-        gameOver();
-        return;
-    }
-    
-    // Проверка столкновения с потолком
-    if (yPos < 0) {
-        yPos = 0;
-    }
-    
-    // Проверка столкновения с трубами
-    for (const pipe of pipes) {
-        if (xPos + bird.width > pipe.x && xPos < pipe.x + pipeUp.width) {
-            // Верхняя труба
-            if (yPos < pipe.y) {
-                gameOver();
-                return;
-            }
-            
-            // Нижняя труба
-            if (yPos + bird.height > pipe.y + gap) {
-                gameOver();
-                return;
-            }
-        }
-    }
+.menu-subtitle {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 30px;
+    max-width: 300px;
+    line-height: 1.4;
 }
 
-function updateScore() {
-    if (!gameStarted) return;
-    
-    // Проверка прохождения труб
-    pipes.forEach(pipe => {
-        if (pipe.passed && xPos > pipe.x + pipeUp.width) {
-            pipe.passed = false;
-            score += 1;
-            scoreElement.textContent = `СЧЕТ: ${score}`;
-        }
-    });
+.btn {
+    background: linear-gradient(to bottom, #FFD700, #FFA500);
+    color: #333;
+    border: 2px solid #333;
+    padding: 14px 0;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 0;
+    text-shadow: none;
+    transition: all 0.1s;
+    box-shadow: 0 3px 0 #333;
+    min-height: 50px;
+    width: 240px;
+    letter-spacing: 1px;
+    touch-action: manipulation; /* Для touch */
 }
 
-function gameOver() {
-    gameActive = false;
-    cancelAnimationFrame(animationFrame);
-    
-    if (isSoundEnabled) {
-        bgMusic.pause();
-        hitSound.currentTime = 0;
-        hitSound.play();
-    }
-    
-    // Обновление рекорда
-    if (score > bestScore) {
-        bestScore = score;
-        localStorage.setItem('retroPixelFlyerBestScore', bestScore);
-        bestScoreElement.textContent = `РЕКОРД: ${bestScore}`;
-    }
-    
-    // Показать меню Game Over
-    finalScoreElement.textContent = score;
-    gameOverMenu.style.display = 'flex';
+.btn:hover, .btn:active {
+    background: linear-gradient(to bottom, #FFCC00, #FF9900);
+    transform: translateY(3px);
+    box-shadow: 0 0 0 #333;
 }
 
-function showMainMenu() {
-    mainMenu.style.display = 'flex';
-    gameOverMenu.style.display = 'none';
-    startScreen.style.display = 'none';
+.btn-leaderboard {
+    background: linear-gradient(to bottom, #90EE90, #7CFC00);
 }
 
-function showLeaderboard() {
-    // В реальной версии здесь будет запрос к серверу
-    if (tg) {
-        tg.showAlert('Таблица рекордов будет добавлена в следующих версиях');
-    } else {
-        alert('Таблица рекордов будет добавлена в следующих версиях');
-    }
+.btn-share {
+    background: linear-gradient(to bottom, #87CEEB, #4682B4);
 }
 
-function toggleSound() {
-    isSoundEnabled = !isSoundEnabled;
-    audioBtn.textContent = isSoundEnabled ? '🔊' : '🔇';
-    
-    if (isSoundEnabled) {
-        bgMusic.play().catch(e => console.log('Autoplay blocked'));
-    } else {
-        bgMusic.pause();
-    }
+.game-over {
+    background: rgba(255, 255, 255, 0.95);
+    border: 3px solid #333;
+    padding: 25px;
+    text-align: center;
+    width: 280px;
+    z-index: 1000;
+    border-radius: 0;
 }
 
-function shareScore() {
-    const message = `Я набрал ${score} очков в RETRO PIXEL FLYER!\n\nПопробуй побить мой рекорд: https://pump0n.github.io/01-retro-flyer/`;
-    
-    if (navigator.share) {
-        navigator.share({
-            title: 'RETRO PIXEL FLYER',
-            text: message
-        }).catch(console.error);
-    } else if (tg) {
-        tg.sendData(JSON.stringify({
-            action: "share_score",
-            score: score
-        }));
-        tg.showAlert('Результат отправлен в Telegram!');
-    } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = message;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        alert('Результат скопирован в буфер обмена!');
-    }
+.score-display {
+    font-size: 26px;
+    color: #FF4500;
+    margin-bottom: 20px;
+    font-weight: bold;
+    text-shadow: 0 0 3px rgba(255, 69, 0, 0.3);
 }
 
-function resizeCanvas() {
-    canvasWidth = window.innerWidth;
-    canvasHeight = window.innerHeight;
-    
-    // Устанавливаем размеры canvas
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-    
-    // Сбрасываем позицию птицы
-    xPos = canvasWidth * 0.2;
-    yPos = canvasHeight / 2;
+.game-over .menu-title {
+    font-size: 26px;
+    margin-bottom: 15px;
 }
 
-// Обработчик изменения размера окна
-window.addEventListener('resize', () => {
-    resizeCanvas();
-    if (!gameActive) {
-        init();
-    }
-});
+.start-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    color: #FFFFFF;
+    z-index: 50;
+    backdrop-filter: blur(2px);
+}
 
-// Запуск при загрузке страницы
-document.addEventListener('DOMContentLoaded', init);
+.start-screen.active {
+    display: flex;
+}
+
+.start-text {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+}
+
+.start-subtext {
+    font-size: 18px;
+    opacity: 0.9;
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.6);
+}
+
+/* Адаптивность */
+@media (max-width: 480px) {
+    .logo-text { font-size: 2em; }
+    .logo-subtext { font-size: 1.6em; }
+    .menu-title { font-size: 26px; }
+    .btn { width: 220px; padding: 12px 0; font-size: 14px; }
+    .game-over { width: 260px; }
+    .start-text { font-size: 24px; }
+    .start-subtext { font-size: 16px; }
+    .loading-bar { width: 200px; }
+    .status-bar { font-size: 12px; gap: 10px; }
+}
