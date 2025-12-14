@@ -74,16 +74,14 @@ body {
 }
 
 #game-container {
-    position: absolute;
-    top: 0;
-    left: 0;
+    position: relative;
     width: 100%;
-    height: 100%;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    touch-action: none;
+    touch-action: manipulation; /* Изменено для лучшего touch в Telegram */
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
@@ -96,21 +94,24 @@ body {
     position: absolute;
     top: 0;
     left: 0;
+    background: #87CEEB; /* Fallback для не загруженного bg */
 }
 
 .status-bar {
-    position: absolute;
+    position: fixed;
     top: 10px;
     left: 10px;
     font-size: 16px;
     font-weight: bold;
     color: #333;
-    z-index: 10;
+    z-index: 20;
     text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+    display: flex;
+    gap: 20px;
 }
 
 .audio-control {
-    position: absolute;
+    position: fixed;
     top: 10px;
     right: 10px;
     background: rgba(255, 255, 255, 0.7);
@@ -122,27 +123,39 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 100;
+    z-index: 20;
     font-weight: bold;
     color: #333;
     font-size: 14px;
     user-select: none;
 }
 
-.menu {
-    position: absolute;
+.main-menu, .game-over-menu {
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.95);
+    display: none; /* По умолчанию скрыто */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(5px); /* Лучше для Telegram */
+}
+
+.main-menu.active, .game-over-menu.active {
+    display: flex;
+}
+
+.menu {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 25px;
-    z-index: 100;
-    backdrop-filter: blur(3px);
+    text-align: center;
 }
 
 .menu-title {
@@ -151,14 +164,12 @@ body {
     letter-spacing: 2px;
     margin-bottom: 10px;
     text-shadow: 0 0 5px rgba(255, 69, 0, 0.3);
-    text-align: center;
 }
 
 .menu-subtitle {
     font-size: 16px;
     color: #333;
     margin-bottom: 30px;
-    text-align: center;
     max-width: 300px;
     line-height: 1.4;
 }
@@ -179,13 +190,11 @@ body {
     min-height: 50px;
     width: 240px;
     letter-spacing: 1px;
+    touch-action: manipulation; /* Для touch */
 }
 
-.btn:hover {
+.btn:hover, .btn:active {
     background: linear-gradient(to bottom, #FFCC00, #FF9900);
-}
-
-.btn:active {
     transform: translateY(3px);
     box-shadow: 0 0 0 #333;
 }
@@ -199,10 +208,6 @@ body {
 }
 
 .game-over {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     background: rgba(255, 255, 255, 0.95);
     border: 3px solid #333;
     padding: 25px;
@@ -226,19 +231,23 @@ body {
 }
 
 .start-screen {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    display: flex;
+    display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.3);
     color: #FFFFFF;
     z-index: 50;
-    display: none;
+    backdrop-filter: blur(2px);
+}
+
+.start-screen.active {
+    display: flex;
 }
 
 .start-text {
@@ -254,39 +263,15 @@ body {
     text-shadow: 0 0 3px rgba(255, 255, 255, 0.6);
 }
 
-/* Адаптивность для мобильных устройств */
+/* Адаптивность */
 @media (max-width: 480px) {
-    .logo-text {
-        font-size: 2em;
-    }
-    
-    .logo-subtext {
-        font-size: 1.6em;
-    }
-    
-    .menu-title {
-        font-size: 26px;
-    }
-    
-    .btn {
-        width: 220px;
-        padding: 12px 0;
-        font-size: 14px;
-    }
-    
-    .game-over {
-        width: 260px;
-    }
-    
-    .start-text {
-        font-size: 24px;
-    }
-    
-    .start-subtext {
-        font-size: 16px;
-    }
-    
-    .loading-bar {
-        width: 200px;
-    }
+    .logo-text { font-size: 2em; }
+    .logo-subtext { font-size: 1.6em; }
+    .menu-title { font-size: 26px; }
+    .btn { width: 220px; padding: 12px 0; font-size: 14px; }
+    .game-over { width: 260px; }
+    .start-text { font-size: 24px; }
+    .start-subtext { font-size: 16px; }
+    .loading-bar { width: 200px; }
+    .status-bar { font-size: 12px; gap: 10px; }
 }
