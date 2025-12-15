@@ -275,6 +275,17 @@ body {
     box-shadow: 0 1px 0 #ff6b6b;
 }
 
+.btn-small.btn-selected {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+    border-color: #4ecdc4;
+    box-shadow: 0 2px 0 #4ecdc4;
+}
+
+.btn-small.btn-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .game-over {
     background: rgba(26, 26, 46, 0.98);
     border: 3px solid #ff6b6b;
@@ -305,6 +316,59 @@ body {
 .game-over .menu-title {
     font-size: 26px;
     margin-bottom: 15px;
+}
+
+.start-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    color: #FFFFFF;
+    z-index: 50;
+    backdrop-filter: blur(3px);
+    pointer-events: auto;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    text-align: center;
+}
+
+.start-screen.active {
+    display: flex;
+}
+
+.start-text {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 2px 2px 4px rgba(0, 0, 0, 0.8);
+    color: #4ecdc4;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.05);
+    }
+}
+
+.start-subtext {
+    font-size: 18px;
+    opacity: 0.9;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.6), 2px 2px 4px rgba(0, 0, 0, 0.8);
+    color: #ff6b6b;
 }
 
 .shop-item, .achievement-item, .leaderboard-item {
@@ -392,7 +456,7 @@ body {
 
 .leaderboard-empty {
     text-align: center;
-    padding: 30px;
+    padding: 40px;
     color: #4ecdc4;
     font-size: 16px;
 }
@@ -441,6 +505,14 @@ body::after {
         max-width: 300px;
     }
     
+    .start-text {
+        font-size: 24px;
+    }
+    
+    .start-subtext {
+        font-size: 16px;
+    }
+    
     .loading-bar {
         width: 200px;
     }
@@ -452,5 +524,11 @@ body::after {
     
     .menu {
         padding: 15px;
+    }
+    
+    .shop-item, .achievement-item, .leaderboard-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
     }
 }
