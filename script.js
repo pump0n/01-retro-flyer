@@ -152,8 +152,10 @@ resources.forEach(res => {
 // Resize canvas с debounce
 let resizeTimeout;
 function resizeCanvas() {
-    canvas.width = document.documentElement.clientWidth;
-    canvas.height = document.documentElement.clientHeight;
+    canvas.width = document.documentElement.clientWidth * scale; // Увеличение canvas для масштаба
+    canvas.height = document.documentElement.clientHeight * scale;
+    canvas.style.width = document.documentElement.clientWidth + 'px'; // Отображение в оригинальном размере
+    canvas.style.height = document.documentElement.clientHeight + 'px';
     birdX = canvas.width / 4; // Центрировано как в оригинале
     birdY = canvas.height / 2;
     ctx.imageSmoothingEnabled = false; // Pixel-perfect for smoothness
@@ -618,6 +620,10 @@ function update(dt) {
 
     velocity += gravity * dt * 60; // Normalize to 60fps
     birdY += velocity * dt * 60;
+
+    if (birdY < 0) { // Collision with sky (ceiling)
+        endGame();
+    }
 
     frame++;
 
