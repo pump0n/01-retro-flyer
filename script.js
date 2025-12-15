@@ -80,10 +80,9 @@ let gameStarted = false;
 let pipes = [];
 let coinsList = [];
 let birdX, birdY, velocity = 0;
-const gravity = 0.4;
+const gravity = 0.35;
 const jumpPower = -6.5;
-const gap = 150; // Зазор между трубами
-let gameSpeed = 2; // Базовая скорость игры
+const gap = 120; // Уменьшенный зазор между трубами
 let frame = 0;
 let isSoundOn = true;
 let bgX = 0;
@@ -257,33 +256,8 @@ function showMainMenu() {
 // Управление игрой
 document.addEventListener('keydown', handleKey);
 canvas.addEventListener('click', handleClick);
-document.addEventListener('touchstart', function(e) {
-    if (gameActive && !gameStarted && startScreen.classList.contains('active')) {
-        e.preventDefault();
-        handleStartScreenTouch(e);
-    }
-}, { passive: false });
-
-document.addEventListener('touchend', function(e) {
-    if (gameActive && !gameStarted && startScreen.classList.contains('active')) {
-        e.preventDefault();
-        handleStartScreenTouch(e);
-    }
-}, { passive: false });
-
 canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-
-// Упрощенный обработчик для start-screen
-function handleStartScreenTouch(e) {
-    // Игнорируем только кнопки и меню
-    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' ||
-        e.target.closest('.menu') || e.target.closest('.status-bar') ||
-        e.target.closest('.audio-control')) {
-        return;
-    }
-    handleInput();
-}
 
 function handleKey(e) {
     if (e.code === 'Space' || e.key === ' ') {
@@ -320,62 +294,7 @@ function handleInput() {
     }
 }
 
-function startGame() {
-    // Скрыть все меню
-    mainMenu.classList.remove('active');
-    gameOverMenu.classList.remove('active');
-    startScreen.classList.add('active');
-    
-    // Сбросить игру
-    score = 0;
-    coinsCollected = 0;
-    coinsEarned = 0;
-    pipes = [];
-    coinsList = [];
-    gameSpeed = 2;
-    
-    birdX = canvas.width * 0.2;
-    birdY = canvas.height / 2;
-    velocity = 0;
-    gameActive = true;
-    gameStarted = false;
-    frame = 0;
-    bgX = 0;
-    fgX = 0;
-    
-    // Обновить интерфейс
-    scoreElement.textContent = `СЧЕТ: ${score}`;
-    
-    // Добавить первые трубы
-    addPipe();
-    
-    // Запустить музыку
-    if (isSoundOn) {
-        bgMusic.currentTime = 0;
-        bgMusic.loop = true;
-        bgMusic.play().catch(e => console.log('Autoplay blocked'));
-    }
-    
-    // Запустить игровой цикл
-    if (animationFrame) cancelAnimationFrame(animationFrame);
-    gameLoop();
-}
-
-function startPlaying() {
-    gameStarted = true;
-    startScreen.classList.remove('active');
-    jump();
-}
-
-function jump() {
-    velocity = jumpPower;
-    if (isSoundOn) {
-        jumpSound.currentTime = 0;
-        jumpSound.play().catch(e => console.log('Sound playback failed'));
-    }
-}
-
-// Добавление труб (исправленная версия)
+// Исправленная функция добавления труб
 function addPipe() {
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
@@ -411,64 +330,31 @@ function addPipe() {
             value: 1
         });
     }
-    
-    // Очень редко добавляем специальную монету (3% вероятность)
-    if (Math.random() > 0.97) {
-        // Случайное расположение: либо близко к верхней трубе, либо к нижней
-        const coinY = Math.random() > 0.5 ? 
-            gapY - 30 : // Близко к верхней трубе
-            gapY + gap + 30; // Близко к нижней трубе
-            
-        coinsList.push({
-            x: canvasWidth + 80,
-            y: coinY,
-            collected: false,
-            size: 28,
-            value: 2
-        });
-    }
 }
 
-// Отрисовка фона с исправлением соединения с землей
+// Оптимизированная отрисовка фона
 function drawBackground() {
-    // Получаем реальные размеры canvas
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
+    // Рисуем фон несколько раз для заполнения всего canvas
+    const cols = Math.ceil(canvas.width / bg.width) + 1;
+    const rows = Math.ceil(canvas.height / bg.height) + 1;
     
-    // Рисуем фон с учетом размеров
-    const bgWidth = bg.naturalWidth || bg.width || canvasWidth;
-    const bgHeight = bg.naturalHeight || bg.height || canvasHeight;
-    const scale = canvasHeight / bgHeight;
-    
-    // Считаем, сколько нужно плиток для заполнения экрана
-    const tilesNeeded = Math.ceil(canvasWidth / (bgWidth * scale)) + 1;
-    
-    // Нормализуем bgX для бесконечной прокрутки
-    bgX = bgX % (bgWidth * scale);
-    if (bgX > 0) bgX -= bgWidth * scale;
-    
-    // Рисуем все плитки фона
-    for (let i = 0; i < tilesNeeded; i++) {
-        const x = bgX + (i * bgWidth * scale);
-        ctx.drawImage(bg, 0, 0, bgWidth, bgHeight, x, 0, bgWidth * scale, canvasHeight);
+    for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < rows; r++) {
+            ctx.drawImage(bg, c * bg.width, r * bg.height);
+        }
     }
-    
-    // Обновляем позицию фона
-    bgX -= 0.5;
 }
 
-// Отрисовка труб (исправленная версия)
+// Исправленная отрисовка труб с правильной ориентацией
 function drawPipes() {
-    // Исправлено позиционирование труб
     pipes.forEach(pipe => {
         // Верхняя труба: начинается сверху и идет вниз до gapY
         const topPipeHeight = pipe.gapY;
-        const pipeWidth = pipeUp.naturalWidth || pipeUp.width || 52;
         
         if (topPipeHeight > 0) {
-            // Рисуем верхнюю трубу
-            ctx.drawImage(pipeUp, 0, 0, pipeWidth, topPipeHeight,
-                pipe.x, 0, pipeWidth, topPipeHeight);
+            // Исправлено: верхняя труба начинается сверху и идет вниз
+            ctx.drawImage(pipeUp, 0, 0, pipeUp.width, topPipeHeight,
+                pipe.x, 0, pipeUp.width, topPipeHeight);
         }
         
         // Нижняя труба: начинается с земли и идет вверх до gapY + gap
@@ -479,14 +365,14 @@ function drawPipes() {
         const bottomPipeHeight = groundY - bottomPipeY;
         
         if (bottomPipeHeight > 0 && bottomPipeY < groundY) {
-            // Рисуем нижнюю трубу
-            ctx.drawImage(pipeBottom, 0, 0, pipeWidth, bottomPipeHeight,
-                pipe.x, bottomPipeY, pipeWidth, bottomPipeHeight);
+            // Исправлено: нижняя труба начинается снизу и идет вверх
+            ctx.drawImage(pipeBottom, 0, 0, pipeBottom.width, bottomPipeHeight,
+                pipe.x, bottomPipeY, pipeBottom.width, bottomPipeHeight);
         }
     });
 }
 
-// Отрисовка монет
+// Оптимизированная отрисовка монет
 function drawCoins() {
     coinsList.forEach(c => {
         if (!c.collected) {
@@ -502,16 +388,18 @@ function drawCoins() {
     });
 }
 
-// Отрисовка птицы
+// Оптимизированная отрисовка птицы
 function drawBird() {
     ctx.save();
+    // Плавное вращение птицы в зависимости от скорости
+    const rotationAngle = Math.min(Math.max(velocity * 0.1, -0.5), 0.5);
     ctx.translate(birdX + bird.width/2, birdY + bird.height/2);
-    ctx.rotate(velocity * 0.1);
+    ctx.rotate(rotationAngle);
     ctx.drawImage(bird, -bird.width/2, -bird.height/2, bird.width, bird.height);
     ctx.restore();
 }
 
-// Отрисовка земли с исправлением соединения с фоном
+// Оптимизированная отрисовка земли
 function drawForeground() {
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
@@ -519,27 +407,14 @@ function drawForeground() {
     const groundY = canvasHeight - fgHeight;
     
     // Рисуем передний фон внизу экрана
-    const fgWidth = fg.naturalWidth || fg.width || 336;
-    const scale = canvasWidth / fgWidth;
-    const tilesNeeded = Math.ceil(canvasWidth / (fgWidth * scale)) + 2;
+    const cols = Math.ceil(canvasWidth / fg.width) + 1;
     
-    // Нормализуем fgX для бесконечной прокрутки
-    fgX = fgX % (fgWidth * scale);
-    if (fgX > 0) fgX -= fgWidth * scale;
-    
-    // Рисуем все плитки земли
-    for (let i = 0; i < tilesNeeded; i++) {
-        const x = fgX + (i * fgWidth * scale);
-        ctx.drawImage(fg, 0, 0, fgWidth, fgHeight, x, groundY, fgWidth * scale, fgHeight);
+    for (let c = 0; c < cols; c++) {
+        ctx.drawImage(fg, c * fg.width, groundY, fg.width, fg.height);
     }
-    
-    // Обновляем позицию земли (синхронизировано со скоростью игры)
-    const speedMultiplier = 1 + (score * 0.02);
-    const fgSpeed = gameSpeed * speedMultiplier;
-    fgX -= fgSpeed;
 }
 
-// Игровой цикл
+// Оптимизированный игровой цикл
 function gameLoop() {
     if (!gameActive) return;
     
@@ -600,6 +475,13 @@ function gameLoop() {
     animationFrame = requestAnimationFrame(gameLoop);
 }
 
+function updateBird() {
+    if (gameStarted) {
+        velocity += gravity;
+        birdY += velocity;
+    }
+}
+
 function updatePipes() {
     frame++;
     
@@ -608,15 +490,11 @@ function updatePipes() {
         addPipe();
     }
     
-    // Обновление позиции труб (плавная скорость)
-    const speedMultiplier = 1 + Math.min(score * 0.02, 2.0);
-    const currentSpeed = gameSpeed * speedMultiplier;
-    
     for (let i = pipes.length - 1; i >= 0; i--) {
-        pipes[i].x -= currentSpeed;
+        pipes[i].x -= 2;
         
         // Проверка прохождения трубы
-        if (!pipes[i].passed && pipes[i].x + (pipeUp.naturalWidth || pipeUp.width || 52) < birdX) {
+        if (!pipes[i].passed && pipes[i].x + pipeUp.width < birdX) {
             pipes[i].passed = true;
             score++;
             updateScore();
@@ -624,58 +502,35 @@ function updatePipes() {
         }
         
         // Удаление труб за пределами экрана
-        if (pipes[i].x + (pipeUp.naturalWidth || pipeUp.width || 52) < 0) {
+        if (pipes[i].x + pipeUp.width < 0) {
             pipes.splice(i, 1);
         }
     }
 }
 
 function updateCoins() {
-    // Обновление позиции монет (плавная скорость)
-    const speedMultiplier = 1 + Math.min(score * 0.02, 2.0);
-    const currentSpeed = gameSpeed * speedMultiplier;
-    
     for (let i = coinsList.length - 1; i >= 0; i--) {
-        coinsList[i].x -= currentSpeed;
+        coinsList[i].x -= 2;
         
         // Проверка сбора монеты
-        if (!coinsList[i].collected) {
-            const coinCenterX = coinsList[i].x;
-            const coinCenterY = coinsList[i].y;
-            const birdCenterX = birdX + bird.width / 2;
-            const birdCenterY = birdY + bird.height / 2;
-            
-            const dx = coinCenterX - birdCenterX;
-            const dy = coinCenterY - birdCenterY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const collisionDistance = (coinsList[i].size / 2 + bird.width / 2);
-            
-            if (distance < collisionDistance) {
-                coinsList[i].collected = true;
-                const coinValue = coinsList[i].value || 1;
-                coinsCollected += coinValue;
-                coinsEarned += coinValue;
-                totalCoins += coinValue;
-                coinsCountElement.textContent = totalCoins;
-                
-                if (isSoundOn) {
-                    coinSound.currentTime = 0;
-                    coinSound.play().catch(e => console.log('Sound playback failed'));
-                }
-            }
+        if (!coinsList[i].collected && 
+            birdX < coinsList[i].x + coinsList[i].size &&
+            birdX + bird.width > coinsList[i].x &&
+            birdY < coinsList[i].y + coinsList[i].size &&
+            birdY + bird.height > coinsList[i].y) {
+            coinsList[i].collected = true;
+            coinsCollected++;
+            coinsEarned++;
+            totalCoins++;
+            coinsCountElement.textContent = totalCoins;
+            updateScore();
+            if (isSoundOn) coinSound.play().catch(e => console.log('Sound playback failed'));
         }
         
         // Удаление монет за пределами экрана
         if (coinsList[i].x + coinsList[i].size < 0) {
             coinsList.splice(i, 1);
         }
-    }
-}
-
-function updateBird() {
-    if (gameStarted) {
-        velocity += gravity;
-        birdY += velocity;
     }
 }
 
@@ -696,32 +551,22 @@ function checkCollisions() {
     
     // Проверка столкновения с потолком
     if (birdTop <= 0) {
-        gameOver();
-        return;
+        birdY = 0;
+        velocity = 0;
     }
     
     // Проверка столкновений с трубами
-    for (let i = 0; i < pipes.length; i++) {
-        const pipe = pipes[i];
-        const pipeLeft = pipe.x;
-        const pipeRight = pipe.x + (pipeUp.naturalWidth || pipeUp.width || 52);
-        
-        // Проверяем только видимые трубы
-        if (pipeRight < birdLeft - 50 || pipeLeft > birdRight + 50) {
-            continue;
-        }
-        
-        // Проверка горизонтального пересечения
-        if (birdRight > pipeLeft && birdLeft < pipeRight) {
+    for (const pipe of pipes) {
+        if (birdX + bird.width > pipe.x && birdX < pipe.x + pipeUp.width) {
             // Верхняя труба
-            if (birdTop < pipe.gapY) {
+            if (birdY < pipe.gapY) {
                 gameOver();
                 return;
             }
             
             // Нижняя труба
-            const bottomPipeTop = pipe.gapY + gap;
-            if (birdBottom > bottomPipeTop) {
+            const bottomPipeY = pipe.gapY + gap;
+            if (birdY + bird.height > bottomPipeY) {
                 gameOver();
                 return;
             }
@@ -730,8 +575,7 @@ function checkCollisions() {
 }
 
 function updateScore() {
-    const totalScore = score + coinsCollected;
-    scoreElement.textContent = `СЧЕТ: ${totalScore}`;
+    scoreElement.textContent = `СЧЕТ: ${score + coinsCollected}`;
 }
 
 function checkAchievements() {
@@ -761,6 +605,7 @@ function gameOver() {
     const totalScore = score + coinsCollected;
     if (totalScore > bestScore) {
         bestScore = totalScore;
+        localStorage.setItem('retroPixelFlyerBestScore', bestScore);
         bestScoreElement.textContent = `РЕКОРД: ${bestScore}`;
         
         // Добавление в таблицу рекордов
