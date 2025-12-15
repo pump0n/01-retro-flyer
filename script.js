@@ -95,6 +95,7 @@ let lastTime = 0; // Для delta-time
 let initialized = false; // Флаг для предотвращения дублирования
 const fixedStep = 1 / 60; // Fixed timestep for updates (60Hz)
 let accumulator = 0; // Для fixed timestep
+const scale = 1.5; // Увеличение масштаба для избежания скомканности
 
 // Система достижений
 const achievements = [
