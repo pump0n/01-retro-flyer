@@ -10,13 +10,12 @@ const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 const mainMenu = document.querySelector('.main-menu');
 const gameOverMenu = document.querySelector('.game-over-menu');
-const startScreen = document.querySelector('.start-screen'); // Стартовый экран теперь в HTML
+const startScreen = document.querySelector('.start-screen');
 const loadingScreen = document.getElementById('loading-screen');
 const shopMenu = document.querySelector('.shop-menu');
 const achievementsMenu = document.querySelector('.achievements-menu');
 const referralMenu = document.querySelector('.referral-menu');
 const leaderboardMenu = document.querySelector('.leaderboard-menu');
-const settingsMenu = document.querySelector('.settings-menu');
 const startBtn = document.getElementById('start-btn');
 const restartBtn = document.getElementById('restart-btn');
 const mainMenuBtn = document.getElementById('main-menu-btn');
@@ -28,10 +27,7 @@ const referralBtn = document.getElementById('referral-btn');
 const referralBackBtn = document.getElementById('referral-back-btn');
 const leaderboardBtn = document.getElementById('leaderboard-btn');
 const leaderboardBackBtn = document.getElementById('leaderboard-back-btn');
-const settingsBtn = document.getElementById('settings-btn');
-const settingsBackBtn = document.getElementById('settings-back-btn');
-const soundToggle = document.getElementById('sound-toggle');
-const soundStatus = document.getElementById('sound-status');
+const audioBtn = document.getElementById('audio-btn');
 const finalScoreElement = document.getElementById('final-score');
 const coinsEarnedElement = document.getElementById('coins-earned');
 const scoreElement = document.querySelector('.score');
@@ -84,7 +80,7 @@ let gameStarted = false;
 let pipes = [];
 let coinsList = [];
 let birdX, birdY, velocity = 0;
-const gravity = 0.35;
+const gravity = 0.4;
 const jumpPower = -6.5;
 const gap = 120; // Уменьшенный зазор между трубами
 let frame = 0;
@@ -97,7 +93,7 @@ let currentBird = 'default';
 let lastTouchTime = 0;
 let touchCooldown = 100;
 let loadingStartTime = 0;
-let minLoadTime = 1500; // 1.5 секунды для анимации загрузки
+let minLoadTime = 1500;
 
 // Система достижений
 const achievements = [
@@ -134,12 +130,10 @@ function resourceLoaded() {
     
     const elapsedTime = Date.now() - loadingStartTime;
     
-    // Если все ресурсы загружены и прошло минимальное время
     if (loadedResources >= resources.length && elapsedTime >= minLoadTime) {
         gameLoaded = true;
         setTimeout(initGame, 300);
     } else if (loadedResources >= resources.length) {
-        // Дождемся минимального времени загрузки
         setTimeout(() => {
             gameLoaded = true;
             initGame();
@@ -181,10 +175,6 @@ function initGame() {
     initReferral();
     initLeaderboard();
     
-    // Установка статуса звука
-    soundStatus.textContent = isSoundOn ? '🔊' : '🔇';
-    soundToggle.classList.toggle('on', isSoundOn);
-    
     // Улучшенная поддержка мобильных устройств
     let lastTouchEnd = 0;
     document.addEventListener('touchend', function(event) {
@@ -201,7 +191,6 @@ function loadGameData() {
     bestScore = parseInt(localStorage.getItem('retroPixelFlyerBestScore') || '0');
     totalCoins = parseInt(localStorage.getItem('retroPixelFlyerCoins') || '0');
     currentBird = localStorage.getItem('retroPixelFlyerBird') || 'default';
-    isSoundOn = localStorage.getItem('retroPixelFlyerSound') !== 'false'; // true по умолчанию
     
     // Загрузка достижений
     const savedAchievements = JSON.parse(localStorage.getItem('retroPixelFlyerAchievements') || '[]');
@@ -245,9 +234,7 @@ referralBtn.addEventListener('click', () => showMenu('referral'));
 referralBackBtn.addEventListener('click', showMainMenu);
 leaderboardBtn.addEventListener('click', () => showMenu('leaderboard'));
 leaderboardBackBtn.addEventListener('click', showMainMenu);
-settingsBtn.addEventListener('click', () => showMenu('settings'));
-settingsBackBtn.addEventListener('click', showMainMenu);
-soundToggle.addEventListener('click', toggleSound);
+audioBtn.addEventListener('click', toggleSound);
 copyLinkBtn.addEventListener('click', copyReferralLink);
 shareBtn.addEventListener('click', shareGame);
 
@@ -259,7 +246,6 @@ function showMenu(menuName) {
     achievementsMenu.classList.remove('active');
     referralMenu.classList.remove('active');
     leaderboardMenu.classList.remove('active');
-    settingsMenu.classList.remove('active');
     
     if (menuName === 'shop') {
         shopMenu.classList.add('active');
@@ -273,9 +259,6 @@ function showMenu(menuName) {
     } else if (menuName === 'leaderboard') {
         leaderboardMenu.classList.add('active');
         initLeaderboard();
-    } else if (menuName === 'settings') {
-        settingsMenu.classList.add('active');
-        updateSettingsUI();
     }
 }
 
@@ -286,34 +269,26 @@ function showMainMenu() {
     achievementsMenu.classList.remove('active');
     referralMenu.classList.remove('active');
     leaderboardMenu.classList.remove('active');
-    settingsMenu.classList.remove('active');
     startScreen.classList.remove('active');
 }
 
-function updateSettingsUI() {
-    soundStatus.textContent = isSoundOn ? '🔊' : '🔇';
-    soundToggle.classList.toggle('on', isSoundOn);
-}
-
-// Управление игрой - ИСПРАВЛЕНО
-canvas.addEventListener('click', handleInput);
+// Управление игрой
+document.addEventListener('keydown', handleKey);
+canvas.addEventListener('click', handleClick);
 canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 
-// Также добавляем обработчики для стартового экрана
-if (startScreen) {
-    startScreen.addEventListener('click', handleInput);
-    startScreen.addEventListener('touchstart', handleTouchStart, { passive: false });
-    startScreen.addEventListener('touchend', handleTouchEnd, { passive: false });
-}
-
-document.addEventListener('keydown', handleKey);
-
+// Обработчики событий
 function handleKey(e) {
     if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault();
         handleInput();
     }
+}
+
+function handleClick(e) {
+    e.preventDefault();
+    handleInput();
 }
 
 function handleTouchStart(e) {
@@ -349,18 +324,9 @@ function handleInput() {
 
 // Старт игры
 function startGame() {
-    // Убедимся, что canvas правильно инициализирован
-    resizeCanvas();
-    
-    if (!canvas || !ctx) {
-        console.error('Canvas not available');
-        return;
-    }
-    
     // Скрыть все меню
     mainMenu.classList.remove('active');
     gameOverMenu.classList.remove('active');
-    settingsMenu.classList.remove('active');
     
     // Показать стартовый экран
     startScreen.classList.add('active');
@@ -401,8 +367,6 @@ function startGame() {
 }
 
 function startPlaying() {
-    if (!gameActive) return;
-    
     gameStarted = true;
     startScreen.classList.remove('active');
     jump();
@@ -416,7 +380,7 @@ function jump() {
     }
 }
 
-// Добавление труб
+// Добавление труб (исправленная версия)
 function addPipe() {
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
@@ -467,31 +431,29 @@ function drawBackground() {
     }
 }
 
-// Отрисовка труб
+// Отрисовка труб (исправленная версия)
 function drawPipes() {
-    const pipeWidth = pipeUp.width;
-    const canvasHeight = canvas.height;
-    const fgHeight = fg.naturalHeight || fg.height || 112;
-    const groundY = canvasHeight - fgHeight;
-    
     pipes.forEach(pipe => {
         // Верхняя труба: начинается сверху и идет вниз до gapY
         const topPipeHeight = pipe.gapY;
         
         if (topPipeHeight > 0) {
-            // Рисуем верхнюю трубу
-            ctx.drawImage(pipeUp, 0, 0, pipeWidth, topPipeHeight,
-                pipe.x, 0, pipeWidth, topPipeHeight);
+            // Рисуем верхнюю трубу (от верха до gapY)
+            ctx.drawImage(pipeUp, 0, 0, pipeUp.width, topPipeHeight,
+                pipe.x, 0, pipeUp.width, topPipeHeight);
         }
         
         // Нижняя труба: начинается с земли и идет вверх до gapY + gap
         const bottomPipeY = pipe.gapY + gap;
+        const canvasHeight = canvas.height;
+        const fgHeight = fg.naturalHeight || fg.height || 112;
+        const groundY = canvasHeight - fgHeight;
         const bottomPipeHeight = groundY - bottomPipeY;
         
         if (bottomPipeHeight > 0 && bottomPipeY < groundY) {
-            // Рисуем нижнюю трубу
-            ctx.drawImage(pipeBottom, 0, 0, pipeWidth, bottomPipeHeight,
-                pipe.x, bottomPipeY, pipeWidth, bottomPipeHeight);
+            // Рисуем нижнюю трубу (от bottomPipeY до земли)
+            ctx.drawImage(pipeBottom, 0, 0, pipeBottom.width, bottomPipeHeight,
+                pipe.x, bottomPipeY, pipeBottom.width, bottomPipeHeight);
         }
     });
 }
@@ -560,17 +522,15 @@ function gameLoop() {
     
     // Если игра не началась - показать стартовый экран
     if (!gameStarted) {
-        // Показываем стартовый экран только если он активен
-        if (startScreen && startScreen.classList.contains('active')) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = '28px "Press Start 2P", cursive';
-            ctx.textAlign = 'center';
-            ctx.fillText('КАСНИТЕСЬ ЭКРАНА', canvas.width / 2, canvas.height / 2 - 20);
-            ctx.font = '16px "Press Start 2P", cursive';
-            ctx.fillText('ЧТОБЫ НАЧАТЬ', canvas.width / 2, canvas.height / 2 + 20);
-        }
+        // Рисуем стартовый экран поверх игры
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '28px "Press Start 2P", cursive';
+        ctx.textAlign = 'center';
+        ctx.fillText('КАСНИТЕСЬ ЭКРАНА', canvas.width / 2, canvas.height / 2 - 20);
+        ctx.font = '16px "Press Start 2P", cursive';
+        ctx.fillText('ЧТОБЫ НАЧАТЬ', canvas.width / 2, canvas.height / 2 + 20);
         
         animationFrame = requestAnimationFrame(gameLoop);
         return;
@@ -683,6 +643,7 @@ function updateCoins() {
     }
 }
 
+// ИСПРАВЛЕННАЯ проверка столкновений
 function checkCollisions() {
     const birdLeft = birdX;
     const birdRight = birdX + bird.width;
@@ -716,15 +677,15 @@ function checkCollisions() {
         
         // Проверка горизонтального пересечения
         if (birdRight > pipeLeft && birdLeft < pipeRight) {
-            // Верхняя труба
+            // Верхняя труба: от верха до gapY
             if (birdTop < pipe.gapY) {
                 gameOver();
                 return;
             }
             
-            // Нижняя труба
+            // Нижняя труба: от gapY + gap до земли
             const bottomPipeY = pipe.gapY + gap;
-            if (birdBottom > bottomPipeY) {
+            if (birdBottom > bottomPipeY && bottomPipeY < groundY) {
                 gameOver();
                 return;
             }
@@ -793,10 +754,7 @@ function gameOver() {
 
 function toggleSound() {
     isSoundOn = !isSoundOn;
-    soundStatus.textContent = isSoundOn ? '🔊' : '🔇';
-    soundToggle.classList.toggle('on', isSoundOn);
-    
-    localStorage.setItem('retroPixelFlyerSound', isSoundOn);
+    audioBtn.textContent = isSoundOn ? '🔊' : '🔇';
     
     if (isSoundOn) {
         bgMusic.play().catch(e => console.log('Autoplay blocked'));
@@ -812,7 +770,6 @@ function saveGameData() {
     localStorage.setItem('retroPixelFlyerBird', currentBird);
     localStorage.setItem('retroPixelFlyerAchievements', JSON.stringify(achievements.map(a => ({ id: a.id, unlocked: a.unlocked }))));
     localStorage.setItem('retroPixelFlyerShop', JSON.stringify(shopItems.map(s => ({ id: s.id, owned: s.owned }))));
-    localStorage.setItem('retroPixelFlyerSound', isSoundOn);
 }
 
 // Инициализация магазина
