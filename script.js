@@ -56,7 +56,7 @@ const coin = new Image();
 // Звуковые файлы
 const jumpSound = new Audio('assets/jump.mp3');
 const coinSound = new Audio('assets/coin.mp3');
-const hitSound = new Audio('assets/hit.mp3');
+const hitSound = new Audio('assets/hit.wav'); // Изменено на WAV
 const bgMusic = new Audio('assets/music.mp3');
 bgMusic.loop = true;
 
@@ -625,7 +625,9 @@ function collisionDetection(pipe) {
 function endGame() {
     gameActive = false;
     cancelAnimationFrame(animationFrame);
-    if (isSoundOn) hitSound.play();
+    if (isSoundOn) {
+        hitSound.play().catch(error => console.error('Audio play error:', error)); // Обработка ошибок воспроизведения
+    }
     if (isSoundOn) bgMusic.pause();
     bgMusic.currentTime = 0;
     coinsEarned = coinsCollected;
