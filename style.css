@@ -24,7 +24,9 @@ body {
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 }
 
 #loading-screen {
@@ -131,7 +133,7 @@ body {
     font-size: 16px;
     font-weight: bold;
     color: #fff;
-    z-index: 10;
+    z-index: 20;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
     display: flex;
     gap: 15px;
@@ -142,7 +144,27 @@ body {
     text-shadow: 0 0 5px rgba(255, 215, 0, 0.8);
 }
 
-.main-menu, .game-over-menu, .shop-menu, .achievements-menu, .referral-menu, .leaderboard-menu, .settings-menu {
+.audio-control {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 2px solid #333;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+    user-select: none;
+}
+
+.menu {
     position: absolute;
     top: 0;
     left: 0;
@@ -153,27 +175,15 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 20px;
     z-index: 100;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(3px);
     overflow-y: auto;
     padding: 20px;
 }
 
-.main-menu.active, .game-over-menu.active, .shop-menu.active, 
-.achievements-menu.active, .referral-menu.active, .leaderboard-menu.active, .settings-menu.active {
+.menu.active {
     display: flex;
-}
-
-.menu {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 20px;
-    text-align: center;
-    max-width: 400px;
-    width: 100%;
-    padding: 20px;
 }
 
 .menu-title {
@@ -189,6 +199,7 @@ body {
     font-size: 16px;
     color: #4ecdc4;
     margin-bottom: 30px;
+    text-align: center;
     max-width: 300px;
     line-height: 1.6;
     text-shadow: 0 0 5px rgba(78, 205, 196, 0.8);
@@ -216,10 +227,8 @@ body {
 
 .btn:hover, .btn:active {
     background: linear-gradient(135deg, #ffcc00, #ff9900);
-}
-
-.btn-settings {
-    background: linear-gradient(135deg, #90ee90, #7cff7c);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #333;
 }
 
 .btn-shop {
@@ -248,7 +257,7 @@ body {
     border: 2px solid #ff6b6b;
     padding: 8px 15px;
     font-family: var(--pixel-font);
-    font-size: 10px;
+    font-size: 12px;
     cursor: pointer;
     border-radius: 0;
     transition: all 0.2s;
@@ -257,13 +266,13 @@ body {
 }
 
 .btn-small:hover {
-    transform: translateY(1px);
-    box-shadow: 0 1px 0 #ff6b6b;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 0 #ff6b6b;
 }
 
 .btn-small:active {
-    transform: translateY(2px);
-    box-shadow: 0 0 0 #ff6b6b;
+    transform: translateY(1px);
+    box-shadow: 0 1px 0 #ff6b6b;
 }
 
 .game-over {
@@ -304,7 +313,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    display: flex;
+    display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -317,7 +326,7 @@ body {
     touch-action: manipulation;
     user-select: none;
     -webkit-user-select: none;
-    display: none; /* Изначально скрыт */
+    text-align: center;
 }
 
 .start-screen.active {
@@ -349,53 +358,6 @@ body {
     opacity: 0.9;
     text-shadow: 0 0 5px rgba(255, 255, 255, 0.6), 2px 2px 4px rgba(0, 0, 0, 0.8);
     color: #ff6b6b;
-}
-
-.settings-item {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid #4ecdc4;
-    border-radius: 0;
-    margin: 10px 0;
-}
-
-.setting-label {
-    font-size: 16px;
-    color: #4ecdc4;
-}
-
-.toggle-switch {
-    width: 60px;
-    height: 30px;
-    background: #333;
-    border-radius: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-
-.toggle-switch.on {
-    background: #4ecdc4;
-}
-
-#sound-status {
-    font-size: 16px;
-}
-
-.setting-select {
-    background: #333;
-    color: #fff;
-    border: 2px solid #4ecdc4;
-    padding: 5px 10px;
-    font-family: var(--pixel-font);
-    border-radius: 0;
-    cursor: pointer;
 }
 
 .shop-item, .achievement-item, .leaderboard-item {
@@ -439,6 +401,27 @@ body {
     margin-bottom: 5px;
 }
 
+.achievement-item.locked {
+    opacity: 0.6;
+}
+
+.achievement-icon {
+    font-size: 24px;
+    margin-right: 10px;
+}
+
+.achievement-badge {
+    background: #ffd700;
+    color: #333;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
 .leaderboard-item {
     justify-content: space-around;
 }
@@ -467,25 +450,22 @@ body {
     font-size: 16px;
 }
 
-.achievement-item.locked {
-    opacity: 0.6;
-}
-
-.achievement-icon {
-    font-size: 24px;
-    margin-right: 10px;
-}
-
-.achievement-badge {
-    background: #ffd700;
-    color: #333;
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 12px;
-    font-weight: bold;
-    position: absolute;
-    top: 5px;
-    right: 5px;
+/* Эффект скан-линий */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.1) 50%,
+        transparent 50%
+    );
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 1000;
 }
 
 /* Адаптивность для мобильных устройств */
@@ -533,11 +513,5 @@ body {
     
     .menu {
         padding: 15px;
-    }
-    
-    .shop-item, .achievement-item, .leaderboard-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
     }
 }
