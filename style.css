@@ -1,13 +1,3 @@
-:root {
-    --primary: #ff00ff;
-    --secondary: #00ffff;
-    --background: #0f0f0f;
-    --text: #ffffff;
-    --pixel-font: 'Press Start 2P', cursive;
-}
-
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
 * {
     margin: 0;
     padding: 0;
@@ -15,20 +5,21 @@
 }
 
 body {
-    background: var(--background);
-    color: var(--text);
-    font-family: var(--pixel-font);
-    font-size: 0.8em;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #fff;
+    font-family: 'Press Start 2P', cursive;
     overflow: hidden;
     height: 100vh;
+    height: -webkit-fill-available; /* Для iOS Safari */
     position: relative;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    margin: 0;
+    padding: 0;
+    /* Предотвращаем зум на двойной тап */
     touch-action: manipulation;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 #loading-screen {
@@ -55,7 +46,7 @@ body {
     font-size: 2.5em;
     color: #ff6b6b;
     letter-spacing: 2px;
-    text-shadow: 0 0 10px rgba(255, 107, 107, 0.8);
+    text-shadow: 0 0 10px rgba(255, 107, 107, 0.8), 0 0 20px rgba(255, 107, 107, 0.5);
     animation: glow 2s ease-in-out infinite alternate;
 }
 
@@ -63,7 +54,8 @@ body {
     font-size: 2em;
     color: #4ecdc4;
     letter-spacing: 2px;
-    text-shadow: 0 0 10px rgba(78, 205, 196, 0.8);
+    text-shadow: 0 0 10px rgba(78, 205, 196, 0.8), 0 0 20px rgba(78, 205, 196, 0.5);
+    animation: glow 2s ease-in-out infinite alternate;
 }
 
 @keyframes glow {
@@ -105,6 +97,7 @@ body {
     position: relative;
     width: 100%;
     height: 100vh;
+    height: -webkit-fill-available; /* Для iOS Safari */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -114,6 +107,8 @@ body {
     -webkit-user-select: none;
     -webkit-touch-callout: none;
     overflow: hidden;
+    /* Исправление для iPhone */
+    -webkit-overflow-scrolling: touch;
 }
 
 #game-canvas {
@@ -123,22 +118,27 @@ body {
     position: absolute;
     top: 0;
     left: 0;
-    touch-action: manipulation;
+    background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 100%);
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
 }
 
 .status-bar {
-    position: absolute;
+    position: fixed;
     top: 10px;
     left: 10px;
-    font-size: 16px;
+    font-size: 12px;
     font-weight: bold;
     color: #fff;
     z-index: 20;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
     display: flex;
     gap: 15px;
+    flex-wrap: wrap;
 }
 
 .coins-display {
@@ -147,27 +147,34 @@ body {
 }
 
 .audio-control {
-    position: absolute;
+    position: fixed;
     top: 10px;
     right: 10px;
-    background: rgba(255, 255, 255, 0.7);
-    border: 2px solid #333;
-    width: 35px;
-    height: 35px;
+    background: rgba(26, 26, 46, 0.8);
+    border: 2px solid #4ecdc4;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 100;
+    z-index: 20;
     font-weight: bold;
-    color: #333;
-    font-size: 14px;
+    color: #4ecdc4;
+    font-size: 16px;
     user-select: none;
+    box-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
+    transition: all 0.3s;
 }
 
-.menu {
-    position: absolute;
+.audio-control:hover {
+    background: rgba(78, 205, 196, 0.3);
+    box-shadow: 0 0 15px rgba(78, 205, 196, 0.8);
+}
+
+.main-menu, .game-over-menu, .shop-menu, .achievements-menu, .referral-menu, .leaderboard-menu {
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
@@ -177,19 +184,31 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 20px;
     z-index: 100;
-    backdrop-filter: blur(3px);
+    backdrop-filter: blur(10px);
     overflow-y: auto;
     padding: 20px;
 }
 
-.menu.active {
+.main-menu.active, .game-over-menu.active, .shop-menu.active, 
+.achievements-menu.active, .referral-menu.active, .leaderboard-menu.active {
     display: flex;
 }
 
+.menu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 20px;
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+    padding: 20px;
+}
+
 .menu-title {
-    font-size: 32px;
+    font-size: 28px;
     color: #ff6b6b;
     letter-spacing: 2px;
     margin-bottom: 10px;
@@ -198,29 +217,28 @@ body {
 }
 
 .menu-subtitle {
-    font-size: 16px;
+    font-size: 12px;
     color: #4ecdc4;
     margin-bottom: 20px;
-    text-align: center;
     max-width: 300px;
     line-height: 1.6;
     text-shadow: 0 0 5px rgba(78, 205, 196, 0.8);
 }
 
 .btn {
-    background: linear-gradient(135deg, #ffd700, #ffa500);
-    color: #333;
-    border: 2px solid #333;
-    padding: 14px 0;
-    font-family: var(--pixel-font);
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+    color: #fff;
+    border: 3px solid #4ecdc4;
+    padding: 15px 0;
+    font-family: 'Press Start 2P', cursive;
     font-size: 14px;
     font-weight: bold;
     cursor: pointer;
     border-radius: 0;
-    text-shadow: none;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     transition: all 0.2s;
-    box-shadow: 0 4px 0 #333;
-    min-height: 50px;
+    box-shadow: 0 4px 0 #4ecdc4, 0 0 15px rgba(78, 205, 196, 0.5);
+    min-height: 55px;
     width: 100%;
     max-width: 280px;
     letter-spacing: 1px;
@@ -228,43 +246,72 @@ body {
 }
 
 .btn:hover, .btn:active {
-    background: linear-gradient(135deg, #ffcc00, #ff9900);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 0 #333;
-}
-
-.btn:active {
+    background: linear-gradient(135deg, #ee5a6f 0%, #ff6b6b 100%);
     transform: translateY(2px);
-    box-shadow: 0 2px 0 #333;
+    box-shadow: 0 2px 0 #4ecdc4, 0 0 20px rgba(78, 205, 196, 0.8);
 }
 
 .btn-shop {
-    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+    box-shadow: 0 4px 0 #ff6b6b, 0 0 15px rgba(255, 107, 107, 0.5);
+    border-color: #ff6b6b;
+}
+
+.btn-shop:hover {
+    box-shadow: 0 2px 0 #ff6b6b, 0 0 20px rgba(255, 107, 107, 0.8);
 }
 
 .btn-achievements {
-    background: linear-gradient(135deg, #ffd700, #ffb347);
+    background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+    box-shadow: 0 4px 0 #ff6b6b, 0 0 15px rgba(255, 107, 107, 0.5);
+    border-color: #ff6b6b;
+    color: #1a1a2e;
+    text-shadow: none;
+}
+
+.btn-achievements:hover {
+    box-shadow: 0 2px 0 #ff6b6b, 0 0 20px rgba(255, 107, 107, 0.8);
 }
 
 .btn-referral {
-    background: linear-gradient(135deg, #ff6347, #ff4500);
+    background: linear-gradient(135deg, #a8e6cf 0%, #7fcdbb 100%);
+    box-shadow: 0 4px 0 #ff6b6b, 0 0 15px rgba(255, 107, 107, 0.5);
+    border-color: #ff6b6b;
+    color: #1a1a2e;
+    text-shadow: none;
+}
+
+.btn-referral:hover {
+    box-shadow: 0 2px 0 #ff6b6b, 0 0 20px rgba(255, 107, 107, 0.8);
 }
 
 .btn-leaderboard {
-    background: linear-gradient(135deg, #95e1d3, #f38181);
+    background: linear-gradient(135deg, #95e1d3 0%, #f38181 100%);
+    box-shadow: 0 4px 0 #4ecdc4, 0 0 15px rgba(78, 205, 196, 0.5);
+    border-color: #4ecdc4;
+}
+
+.btn-leaderboard:hover {
+    box-shadow: 0 2px 0 #4ecdc4, 0 0 20px rgba(78, 205, 196, 0.8);
 }
 
 .btn-share {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 4px 0 #4ecdc4, 0 0 15px rgba(78, 205, 196, 0.5);
+    border-color: #4ecdc4;
+}
+
+.btn-share:hover {
+    box-shadow: 0 2px 0 #4ecdc4, 0 0 20px rgba(78, 205, 196, 0.8);
 }
 
 .btn-small {
-    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
     color: #fff;
     border: 2px solid #ff6b6b;
     padding: 8px 15px;
-    font-family: var(--pixel-font);
-    font-size: 12px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
     cursor: pointer;
     border-radius: 0;
     transition: all 0.2s;
@@ -273,17 +320,12 @@ body {
 }
 
 .btn-small:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 3px 0 #ff6b6b;
-}
-
-.btn-small:active {
     transform: translateY(1px);
     box-shadow: 0 1px 0 #ff6b6b;
 }
 
 .btn-small.btn-selected {
-    background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
     border-color: #4ecdc4;
     box-shadow: 0 2px 0 #4ecdc4;
 }
@@ -306,7 +348,7 @@ body {
 }
 
 .score-display {
-    font-size: 26px;
+    font-size: 24px;
     color: #ff6b6b;
     margin-bottom: 15px;
     font-weight: bold;
@@ -321,102 +363,12 @@ body {
 }
 
 .game-over .menu-title {
-    font-size: 26px;
+    font-size: 24px;
     margin-bottom: 15px;
 }
 
-.shop-item, .achievement-item, .leaderboard-item {
-    width: 100%;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid #4ecdc4;
-    border-radius: 0;
-    margin: 10px 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.shop-item-info, .achievement-info {
-    flex: 1;
-    text-align: left;
-}
-
-.shop-item-name, .achievement-name {
-    font-size: 16px;
-    color: #ffd700;
-    margin-bottom: 5px;
-}
-
-.shop-item-desc, .achievement-desc {
-    font-size: 12px;
-    color: #ccc;
-}
-
-.shop-item-actions, .achievement-actions {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 5px;
-}
-
-.shop-item-price {
-    font-size: 12px;
-    color: #ffd700;
-    margin-bottom: 5px;
-}
-
-.achievement-item.locked {
-    opacity: 0.6;
-}
-
-.achievement-icon {
-    font-size: 24px;
-    margin-right: 10px;
-}
-
-.achievement-badge {
-    background: #ffd700;
-    color: #333;
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 12px;
-    font-weight: bold;
-    position: absolute;
-    top: 5px;
-    right: 5px;
-}
-
-.leaderboard-item {
-    justify-content: space-around;
-}
-
-.leaderboard-rank {
-    font-size: 18px;
-    color: #ffd700;
-    font-weight: bold;
-}
-
-.leaderboard-score {
-    font-size: 18px;
-    color: #4ecdc4;
-    font-weight: bold;
-}
-
-.leaderboard-date {
-    font-size: 12px;
-    color: #aaa;
-}
-
-.leaderboard-empty {
-    text-align: center;
-    padding: 30px;
-    color: #4ecdc4;
-    font-size: 16px;
-}
-
 .start-screen {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
@@ -425,16 +377,22 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.5);
-    color: #FFFFFF;
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
     z-index: 50;
     backdrop-filter: blur(3px);
     pointer-events: auto;
     cursor: pointer;
     touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
     user-select: none;
     -webkit-user-select: none;
-    text-align: center;
+}
+
+.start-screen.active {
+    display: flex;
+    pointer-events: auto;
 }
 
 .start-screen.active {
@@ -442,7 +400,7 @@ body {
 }
 
 .start-text {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: bold;
     margin-bottom: 10px;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 2px 2px 4px rgba(0, 0, 0, 0.8);
@@ -462,80 +420,283 @@ body {
 }
 
 .start-subtext {
-    font-size: 18px;
+    font-size: 14px;
     opacity: 0.9;
     text-shadow: 0 0 5px rgba(255, 255, 255, 0.6), 2px 2px 4px rgba(0, 0, 0, 0.8);
     color: #ff6b6b;
 }
 
-/* Эффект скан-линий */
-body::after {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
+/* Магазин */
+.shop-content, .achievements-content, .leaderboard-content {
     width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        0deg,
-        rgba(0, 0, 0, 0.1) 50%,
-        transparent 50%
-    );
-    background-size: 100% 4px;
-    pointer-events: none;
-    z-index: 1000;
+    max-width: 350px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    padding: 10px;
 }
 
-/* Адаптивность для мобильных устройств */
+.shop-item {
+    background: rgba(78, 205, 196, 0.1);
+    border: 2px solid #4ecdc4;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
+}
+
+.shop-item-info {
+    flex: 1;
+    text-align: left;
+}
+
+.shop-item-name {
+    font-size: 12px;
+    color: #4ecdc4;
+    margin-bottom: 5px;
+    text-shadow: 0 0 5px rgba(78, 205, 196, 0.8);
+}
+
+.shop-item-desc {
+    font-size: 8px;
+    color: #fff;
+    opacity: 0.8;
+    line-height: 1.4;
+}
+
+.shop-item-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+}
+
+.shop-item-price {
+    font-size: 10px;
+    color: #ffd700;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.8);
+}
+
+/* Достижения */
+.achievement-item {
+    background: rgba(255, 107, 107, 0.1);
+    border: 2px solid #ff6b6b;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.3);
+    position: relative;
+}
+
+.achievement-item.locked {
+    opacity: 0.6;
+    border-color: #666;
+}
+
+.achievement-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.achievement-info {
+    flex: 1;
+    text-align: left;
+}
+
+.achievement-name {
+    font-size: 12px;
+    color: #ff6b6b;
+    margin-bottom: 5px;
+    text-shadow: 0 0 5px rgba(255, 107, 107, 0.8);
+}
+
+.achievement-desc {
+    font-size: 8px;
+    color: #fff;
+    opacity: 0.8;
+    line-height: 1.4;
+}
+
+.achievement-badge {
+    font-size: 8px;
+    color: #ffd700;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.8);
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
+/* Реферальная программа */
+.referral-content {
+    width: 100%;
+    max-width: 350px;
+    margin-bottom: 20px;
+}
+
+.referral-info {
+    background: rgba(78, 205, 196, 0.1);
+    border: 2px solid #4ecdc4;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
+}
+
+.referral-info p {
+    font-size: 10px;
+    color: #4ecdc4;
+    margin-bottom: 15px;
+    line-height: 1.6;
+    text-shadow: 0 0 5px rgba(78, 205, 196, 0.8);
+}
+
+.referral-link {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.referral-link input {
+    flex: 1;
+    background: rgba(26, 26, 46, 0.8);
+    border: 2px solid #4ecdc4;
+    color: #fff;
+    padding: 10px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 8px;
+    border-radius: 0;
+}
+
+.referral-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 10px;
+    color: #fff;
+}
+
+.referral-stats div {
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Таблица рекордов */
+.leaderboard-item {
+    background: rgba(78, 205, 196, 0.1);
+    border: 2px solid #4ecdc4;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
+}
+
+.leaderboard-rank {
+    font-size: 14px;
+    color: #ffd700;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.8);
+    min-width: 40px;
+}
+
+.leaderboard-score {
+    font-size: 16px;
+    color: #4ecdc4;
+    text-shadow: 0 0 5px rgba(78, 205, 196, 0.8);
+    flex: 1;
+    text-align: center;
+}
+
+.leaderboard-date {
+    font-size: 8px;
+    color: #fff;
+    opacity: 0.7;
+    min-width: 80px;
+    text-align: right;
+}
+
+.leaderboard-empty {
+    text-align: center;
+    color: #4ecdc4;
+    font-size: 12px;
+    padding: 40px;
+    text-shadow: 0 0 5px rgba(78, 205, 196, 0.8);
+}
+
+/* Адаптивность */
 @media (max-width: 480px) {
-    .logo-text {
-        font-size: 2em;
-    }
-    
-    .logo-subtext {
-        font-size: 1.6em;
-    }
-    
-    .menu-title {
-        font-size: 26px;
-    }
-    
-    .btn {
-        width: 100%;
-        max-width: 260px;
-        padding: 12px 0;
-        font-size: 14px;
-    }
-    
-    .game-over {
-        width: 90%;
-        max-width: 300px;
-    }
-    
-    .start-text {
-        font-size: 24px;
-    }
-    
-    .start-subtext {
-        font-size: 16px;
-    }
-    
-    .loading-bar {
-        width: 200px;
-    }
-    
-    .status-bar {
-        font-size: 12px;
-        gap: 10px;
-    }
-    
-    .menu {
-        padding: 15px;
-    }
-    
-    .shop-item, .achievement-item, .leaderboard-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
+    .logo-text { font-size: 2em; }
+    .logo-subtext { font-size: 1.6em; }
+    .menu-title { font-size: 22px; }
+    .btn { width: 100%; max-width: 260px; padding: 12px 0; font-size: 12px; }
+    .game-over { width: 90%; max-width: 300px; }
+    .start-text { font-size: 20px; }
+    .start-subtext { font-size: 12px; }
+    .loading-bar { width: 200px; }
+    .status-bar { font-size: 10px; gap: 10px; }
+    .menu { padding: 15px; }
+    .shop-content, .achievements-content, .leaderboard-content {
+        max-height: 350px;
     }
 }
+
+/* Специальные стили для iOS */
+@supports (-webkit-touch-callout: none) {
+    body {
+        height: -webkit-fill-available;
+    }
+    
+    #game-container {
+        height: -webkit-fill-available;
+    }
+    
+    #game-canvas {
+        height: -webkit-fill-available;
+    }
+}
+
+/* Предотвращение зума на двойной тап для iOS */
+* {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+/* Исправление для iPhone X и новее (безопасные зоны) */
+@supports (padding: max(0px)) {
+    body {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
+/* Скроллбар */
+.shop-content::-webkit-scrollbar,
+.achievements-content::-webkit-scrollbar,
+.leaderboard-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.shop-content::-webkit-scrollbar-track,
+.achievements-content::-webkit-scrollbar-track,
+.leaderboard-content::-webkit-scrollbar-track {
+    background: rgba(26, 26, 46, 0.5);
+}
+
+.shop-content::-webkit-scrollbar-thumb,
+.achievements-content::-webkit-scrollbar-thumb,
+.leaderboard-content::-webkit-scrollbar-thumb {
+    background: #4ecdc4;
+    border-radius: 0;
+}
+
+.shop-content::-webkit-scrollbar-thumb:hover,
+.achievements-content::-webkit-scrollbar-thumb:hover,
+.leaderboard-content::-webkit-scrollbar-thumb:hover {
+    background: #ff6b6b;
+}
+
