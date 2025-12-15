@@ -5,31 +5,17 @@ if (tg) {
     tg.ready();
 }
 
-// DOM элементы - с дополнительной проверкой дублирования
-function getUniqueElement(selector) {
-    const elements = document.querySelectorAll(selector);
-    if (elements.length > 1) {
-        console.warn(`Найдено несколько элементов ${selector}. Оставляем только первый.`);
-        for (let i = 1; i < elements.length; i++) {
-            elements[i].remove();
-        }
-    }
-    return document.querySelector(selector);
-}
-
-// Получаем элементы с проверкой на дублирование
+// DOM элементы
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
-const mainMenu = getUniqueElement('.main-menu');
-const gameOverMenu = getUniqueElement('.game-over-menu');
-const startScreen = getUniqueElement('.start-screen');
+const mainMenu = document.querySelector('.main-menu');
+const gameOverMenu = document.querySelector('.game-over-menu');
+const startScreen = document.querySelector('.start-screen'); // Один экземпляр
 const loadingScreen = document.getElementById('loading-screen');
-const shopMenu = getUniqueElement('.shop-menu');
-const achievementsMenu = getUniqueElement('.achievements-menu');
-const referralMenu = getUniqueElement('.referral-menu');
-const leaderboardMenu = getUniqueElement('.leaderboard-menu');
-
-// Остальные элементы без изменений
+const shopMenu = document.querySelector('.shop-menu');
+const achievementsMenu = document.querySelector('.achievements-menu');
+const referralMenu = document.querySelector('.referral-menu');
+const leaderboardMenu = document.querySelector('.leaderboard-menu');
 const startBtn = document.getElementById('start-btn');
 const restartBtn = document.getElementById('restart-btn');
 const mainMenuBtn = document.getElementById('main-menu-btn');
@@ -130,7 +116,7 @@ const shopItems = [
 const resources = [bird, bg, fg, pipeUp, pipeBottom, coin];
 let loadedResources = 0;
 let loadingStartTime = 0;
-const minLoadTime = 1500; // 1.5 секунды
+const minLoadTime = 1500; // 1.5 секунды для анимации загрузки
 
 // Обработчик загрузки ресурсов
 function resourceLoaded() {
@@ -144,10 +130,12 @@ function resourceLoaded() {
     
     const elapsedTime = Date.now() - loadingStartTime;
     
+    // Если все ресурсы загружены и прошло минимальное время
     if (loadedResources >= resources.length && elapsedTime >= minLoadTime) {
         gameLoaded = true;
         setTimeout(initGame, 300);
     } else if (loadedResources >= resources.length) {
+        // Дождемся минимального времени загрузки
         setTimeout(() => {
             gameLoaded = true;
             initGame();
@@ -173,6 +161,15 @@ resizeCanvas();
 
 // Инициализация игры
 function initGame() {
+    // Убедимся, что есть только один start-screen
+    const startScreens = document.querySelectorAll('.start-screen');
+    if (startScreens.length > 1) {
+        for (let i = 1; i < startScreens.length; i++) {
+            startScreens[i].remove();
+        }
+        console.log('Удалены дублирующие start-screen');
+    }
+    
     // Скрыть экран загрузки
     loadingScreen.style.opacity = '0';
     setTimeout(() => {
@@ -236,7 +233,7 @@ function updateUI() {
     initAchievements();
 }
 
-// Кнопки главного меню
+// Кнопки меню
 startBtn.addEventListener('click', startGame);
 restartBtn.addEventListener('click', startGame);
 mainMenuBtn.addEventListener('click', showMainMenu);
@@ -292,22 +289,7 @@ canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 document.addEventListener('keydown', handleKey);
 
-// Универсальный обработчик ввода
-function handleInput() {
-    if (!gameActive) return;
-    
-    if (!gameStarted) {
-        startPlaying();
-    } else {
-        jump();
-    }
-    
-    if (tg && tg.HapticFeedback) {
-        tg.HapticFeedback.impactOccurred('light');
-    }
-}
-
-// Улучшенные обработчики касаний
+// Универсальные обработчики касаний
 function handleKey(e) {
     if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault();
@@ -337,6 +319,20 @@ function handleTouchEnd(e) {
     handleInput();
 }
 
+function handleInput() {
+    if (!gameActive) return;
+    
+    if (!gameStarted) {
+        startPlaying();
+    } else {
+        jump();
+    }
+    
+    if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('light');
+    }
+}
+
 // Старт игры
 function startGame() {
     // Скрыть все меню
@@ -344,7 +340,9 @@ function startGame() {
     gameOverMenu.classList.remove('active');
     
     // Убедиться, что есть только один start-screen
-    if (!startScreen) {
+    const startScreens = document.querySelectorAll('.start-screen');
+    if (startScreens.length === 0) {
+        // Создаем стартовый экран только если его нет
         const newStartScreen = document.createElement('div');
         newStartScreen.className = 'start-screen';
         newStartScreen.innerHTML = `
@@ -352,7 +350,13 @@ function startGame() {
             <div class="start-subtext">ЧТОБЫ НАЧАТЬ ПОЛЕТ</div>
         `;
         document.getElementById('game-container').appendChild(newStartScreen);
+        // Обновляем ссылку на startScreen
         startScreen = newStartScreen;
+    } else {
+        // Если есть несколько экземпляров, оставляем только первый
+        for (let i = 1; i < startScreens.length; i++) {
+            startScreens[i].remove();
+        }
     }
     
     startScreen.classList.add('active');
@@ -363,8 +367,8 @@ function startGame() {
     coinsEarned = 0;
     pipes = [];
     coinsList = [];
-    gameSpeed = 2;
     
+    // Позиция птицы
     birdX = canvas.width * 0.2;
     birdY = canvas.height / 2;
     velocity = 0;
@@ -413,23 +417,26 @@ function addPipe() {
     const fgHeight = fg.naturalHeight || fg.height || 112;
     const groundY = canvasHeight - fgHeight;
     
-    const minTop = 60;
-    const maxTop = groundY - gap - 60;
+    // Минимальное и максимальное расстояние от верха до зазора
+    const minTop = 60; // Минимальная высота верхней трубы
+    const maxTop = groundY - gap - 60; // Максимальная высота верхней трубы
     
     if (maxTop <= minTop) {
         console.warn('Not enough space for pipes');
         return;
     }
     
+    // Генерируем случайную высоту зазора
     const gapY = Math.floor(Math.random() * (maxTop - minTop)) + minTop;
     
+    // Добавляем пару труб
     pipes.push({
         x: canvasWidth,
-        gapY: gapY,
+        gapY: gapY, // Позиция зазора от верха
         passed: false
     });
     
-    // Добавляем монету между трубами
+    // Добавляем монету между трубами (30% вероятность)
     if (Math.random() > 0.7) {
         coinsList.push({
             x: canvasWidth + 40,
@@ -459,7 +466,7 @@ function drawPipes() {
     const pipeWidth = pipeUp.width;
     
     pipes.forEach(pipe => {
-        // Верхняя труба
+        // Верхняя труба: от верха до gapY
         const topPipeHeight = pipe.gapY;
         
         if (topPipeHeight > 0) {
@@ -467,7 +474,7 @@ function drawPipes() {
                 pipe.x, 0, pipeWidth, topPipeHeight);
         }
         
-        // Нижняя труба
+        // Нижняя труба: от gapY + gap до земли
         const bottomPipeY = pipe.gapY + gap;
         const canvasHeight = canvas.height;
         const fgHeight = fg.naturalHeight || fg.height || 112;
@@ -475,8 +482,13 @@ function drawPipes() {
         const bottomPipeHeight = groundY - bottomPipeY;
         
         if (bottomPipeHeight > 0 && bottomPipeY < groundY) {
+            // Рисуем нижнюю трубу с правильной ориентацией
+            ctx.save();
+            ctx.translate(pipe.x, bottomPipeY + bottomPipeHeight);
+            ctx.scale(1, -1);
             ctx.drawImage(pipeBottom, 0, 0, pipeWidth, bottomPipeHeight,
-                pipe.x, bottomPipeY, pipeWidth, bottomPipeHeight);
+                0, 0, pipeWidth, bottomPipeHeight);
+            ctx.restore();
         }
     });
 }
@@ -485,6 +497,7 @@ function drawPipes() {
 function drawCoins() {
     coinsList.forEach(c => {
         if (!c.collected) {
+            // Анимация вращения монетки
             const rotation = Math.sin(frame / 10) * 0.2;
             
             ctx.save();
@@ -512,6 +525,7 @@ function drawForeground() {
     const fgHeight = fg.naturalHeight || fg.height || 112;
     const groundY = canvasHeight - fgHeight;
     
+    // Рисуем передний фон внизу экрана
     const cols = Math.ceil(canvasWidth / fg.width) + 1;
     
     for (let c = 0; c < cols; c++) {
@@ -543,7 +557,6 @@ function gameLoop() {
     
     // Если игра не началась - показать стартовый экран
     if (!gameStarted) {
-        // Убедиться, что start-screen отображается только один раз
         if (startScreen && startScreen.classList.contains('active')) {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -592,13 +605,13 @@ function updateBird() {
         const canvasHeight = canvas.height;
         const fgHeight = fg.naturalHeight || fg.height || 112;
         const groundY = canvasHeight - fgHeight;
-        if (birdY + bird.height >= groundY) {
+        if (birdY + bird.height > groundY) {
             gameOver();
             return;
         }
         
         // Проверка столкновения с потолком
-        if (birdY <= 0) {
+        if (birdY < 0) {
             birdY = 0;
             velocity = 0;
         }
@@ -680,8 +693,7 @@ function checkCollisions() {
     }
     
     // Проверка столкновений с трубами
-    for (let i = 0; i < pipes.length; i++) {
-        const pipe = pipes[i];
+    for (const pipe of pipes) {
         const pipeLeft = pipe.x;
         const pipeRight = pipe.x + pipeUp.width;
         
@@ -1025,6 +1037,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 gameLoaded = true;
                 initGame();
             }
-        }, 1500);
+        }, 3000);
     }
 });
