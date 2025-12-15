@@ -159,6 +159,268 @@ window.addEventListener('resize', () => {
     resizeTimeout = setTimeout(resizeCanvas, 100);
 });
 
+// Загрузка данных игры
+function loadGameData() {
+    totalCoins = parseInt(localStorage.getItem('retroPixelFlyerCoins') || '0');
+    bestScore = parseInt(localStorage.getItem('retroPixelFlyerBestScore') || '0');
+    isSoundOn = localStorage.getItem('retroPixelFlyerSound') !== 'false';
+    currentBird = localStorage.getItem('retroPixelFlyerCurrentBird') || 'default';
+    
+    // Загрузка достижений
+    const savedAchievements = JSON.parse(localStorage.getItem('retroPixelFlyerAchievements') || '[]');
+    achievements.forEach(ach => {
+        ach.unlocked = savedAchievements.includes(ach.id);
+    });
+    
+    // Загрузка покупок
+    const savedItems = JSON.parse(localStorage.getItem('retroPixelFlyerShopItems') || '[]');
+    shopItems.forEach(item => {
+        item.owned = item.price === 0 || savedItems.includes(item.id);
+    });
+    
+    // Рефералы
+    const referralData = JSON.parse(localStorage.getItem('retroPixelFlyerReferrals') || '{"count": 0, "bonus": 0}');
+    referralsCountElement.textContent = referralData.count;
+    referralsBonusElement.textContent = referralData.bonus;
+    
+    coinsCountElement.textContent = totalCoins;
+    bestScoreElement.textContent = `РЕКОРД: ${bestScore}`;
+}
+
+// Сохранение данных
+function saveGameData() {
+    localStorage.setItem('retroPixelFlyerCoins', totalCoins);
+    localStorage.setItem('retroPixelFlyerBestScore', bestScore);
+    localStorage.setItem('retroPixelFlyerCurrentBird', currentBird);
+    
+    const unlockedAchievements = achievements.filter(ach => ach.unlocked).map(ach => ach.id);
+    localStorage.setItem('retroPixelFlyerAchievements', JSON.stringify(unlockedAchievements));
+    
+    const ownedItems = shopItems.filter(item => item.owned).map(item => item.id);
+    localStorage.setItem('retroPixelFlyerShopItems', JSON.stringify(ownedItems));
+}
+
+// Инициализация магазина
+function initShop() {
+    shopContent.innerHTML = '';
+    shopItems.forEach(item => {
+        const shopItem = document.createElement('div');
+        shopItem.className = 'shop-item';
+        if (item.owned) {
+            shopItem.innerHTML = `
+                <div class="shop-name">${item.name}</div>
+                <div class="shop-desc">${item.description}</div>
+                <button class="btn-small" data-id="${item.id}" ${currentBird === item.id ? 'disabled' : ''}>${currentBird === item.id ? 'ВЫБРАНО' : 'ВЫБРАТЬ'}</button>
+            `;
+        } else {
+            shopItem.innerHTML = `
+                <div class="shop-name">${item.name}</div>
+                <div class="shop-desc">${item.description}</div>
+                <div class="shop-price">${item.price} 🪙</div>
+                <button class="btn-small" data-id="${item.id}">КУПИТЬ</button>
+            `;
+        }
+        shopContent.appendChild(shopItem);
+    });
+    
+    // Обработчики покупки/выбора
+    shopContent.querySelectorAll('.btn-small').forEach(btn => {
+        btn.addEventListener('click', e => {
+            const id = e.target.dataset.id;
+            const item = shopItems.find(i => i.id === id);
+            if (item.owned) {
+                currentBird = id;
+                initShop();
+                saveGameData();
+            } else if (totalCoins >= item.price) {
+                totalCoins -= item.price;
+                item.owned = true;
+                currentBird = id;
+                coinsCountElement.textContent = totalCoins;
+                initShop();
+                saveGameData();
+            } else {
+                if (tg && tg.showAlert) tg.showAlert('Недостаточно монет!');
+            }
+        });
+    });
+}
+
+// Инициализация достижений
+function initAchievements() {
+    achievementsContent.innerHTML = '';
+    achievements.forEach(ach => {
+        const achItem = document.createElement('div');
+        achItem.className = 'achievement-item';
+        achItem.innerHTML = `
+            <div class="achievement-name">${ach.name}</div>
+            <div class="achievement-desc">${ach.description}</div>
+            ${ach.unlocked ? '<div class="achievement-badge">✅</div>' : ''}
+        `;
+        achievementsContent.appendChild(achItem);
+    });
+}
+
+function checkAchievements() {
+    let updated = false;
+    achievements.forEach(ach => {
+        if (!ach.unlocked && score >= ach.score) {
+            ach.unlocked = true;
+            updated = true;
+            if (tg && tg.showAlert) tg.showAlert(`Достижение разблокировано: ${ach.name}!`);
+        }
+    });
+    if (updated) {
+        initAchievements();
+        saveGameData();
+    }
+}
+
+// Инициализация рефералов
+function initReferral() {
+    let userId = 'user_' + Date.now();
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        userId = tg.initDataUnsafe.user.id.toString();
+    }
+    
+    const referralCode = encodeURIComponent(userId).substring(0, 12);
+    const referralLink = `https://t.me/your_bot?start=${referralCode}`;
+    referralLinkInput.value = referralLink;
+    
+    // Проверка реферального кода при запуске
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+        const refCode = tg.initDataUnsafe.start_param;
+        handleReferral(refCode);
+    }
+}
+
+function handleReferral(refCode) {
+    let userId = 'user_' + Date.now();
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        userId = tg.initDataUnsafe.user.id.toString();
+    }
+    
+    try {
+        const refUserId = decodeURIComponent(refCode);
+        if (refUserId === userId || refUserId.includes(userId)) return;
+        
+        const processedRefs = JSON.parse(localStorage.getItem('retroPixelFlyerProcessedRefs') || '[]');
+        if (processedRefs.includes(refCode)) return;
+        
+        processedRefs.push(refCode);
+        localStorage.setItem('retroPixelFlyerProcessedRefs', JSON.stringify(processedRefs));
+        
+        const referralData = JSON.parse(localStorage.getItem('retroPixelFlyerReferrals') || '{"count": 0, "bonus": 0}');
+        referralData.count++;
+        referralData.bonus += 10;
+        totalCoins += 10;
+        localStorage.setItem('retroPixelFlyerReferrals', JSON.stringify(referralData));
+        referralsCountElement.textContent = referralData.count;
+        referralsBonusElement.textContent = referralData.bonus;
+        coinsCountElement.textContent = totalCoins;
+        saveGameData();
+        
+        if (tg && tg.showAlert) {
+            tg.showAlert('Вы получили 10 монет за приглашение друга!');
+        }
+    } catch (e) {
+        console.error('Error processing referral:', e);
+    }
+}
+
+function copyReferralLink() {
+    referralLinkInput.select();
+    referralLinkInput.setSelectionRange(0, 99999);
+    
+    try {
+        navigator.clipboard.writeText(referralLinkInput.value).then(() => {
+            if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована!');
+        }).catch(() => {
+            document.execCommand('copy');
+            if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована!');
+        });
+    } catch (e) {
+        document.execCommand('copy');
+        if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована!');
+    }
+}
+
+// Инициализация таблицы рекордов
+function initLeaderboard() {
+    leaderboardContent.innerHTML = '';
+    
+    let leaderboard = JSON.parse(localStorage.getItem('retroPixelFlyerLeaderboard') || '[]');
+    
+    leaderboard.sort((a, b) => b.score - a.score);
+    
+    const uniqueLeaderboard = [];
+    const seenScores = new Set();
+    leaderboard.forEach(entry => {
+        if (!seenScores.has(entry.score)) {
+            seenScores.add(entry.score);
+            uniqueLeaderboard.push(entry);
+        }
+    });
+    
+    leaderboard = uniqueLeaderboard.slice(0, 10);
+    localStorage.setItem('retroPixelFlyerLeaderboard', JSON.stringify(leaderboard));
+    
+    if (leaderboard.length === 0) {
+        leaderboardContent.innerHTML = '<div class="leaderboard-empty">Пока нет рекордов<br>Сыграй и установи свой рекорд!</div>';
+        return;
+    }
+    
+    leaderboard.forEach((entry, index) => {
+        const leaderboardItem = document.createElement('div');
+        leaderboardItem.className = 'leaderboard-item';
+        if (entry.score === bestScore) {
+            leaderboardItem.style.borderColor = '#ffd700';
+            leaderboardItem.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.5)';
+        }
+        leaderboardItem.innerHTML = `
+            <div class="leaderboard-rank">${index + 1}</div>
+            <div class="leaderboard-score">${entry.score}</div>
+            <div class="leaderboard-date">${entry.date || 'Сегодня'}</div>
+        `;
+        leaderboardContent.appendChild(leaderboardItem);
+    });
+}
+
+function addToLeaderboard(newScore) {
+    const date = new Date().toLocaleDateString('ru-RU');
+    let leaderboard = JSON.parse(localStorage.getItem('retroPixelFlyerLeaderboard') || '[]');
+    leaderboard.push({ score: newScore, date });
+    localStorage.setItem('retroPixelFlyerLeaderboard', JSON.stringify(leaderboard));
+    initLeaderboard();
+}
+
+// Функция поделиться
+function shareGame() {
+    const totalScore = score + coinsCollected;
+    const shareText = `🎮 Я набрал ${totalScore} очков в RETRO PIXEL FLYER!\nПопробуй побить мой рекорд!\nhttps://pump0n.github.io/01-retro-flyer/`;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'RETRO PIXEL FLYER',
+            text: shareText
+        }).catch(console.error);
+    } else if (tg) {
+        tg.sendData(JSON.stringify({
+            action: "share_score",
+            score: totalScore
+        }));
+        tg.showAlert('Результат отправлен в Telegram!');
+    } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = shareText;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('Результат скопирован в буфер обмена!');
+    }
+}
+
 // Инициализация игры
 function initGame() {
     loadingScreen.style.opacity = '0';
@@ -176,14 +438,14 @@ function initGame() {
     startBtn.addEventListener('click', startGame);
     restartBtn.addEventListener('click', restartGame);
     mainMenuBtn.addEventListener('click', returnToMainMenu);
-    shopBtn.addEventListener('click', openShop);
-    shopBackBtn.addEventListener('click', closeShop);
-    achievementsBtn.addEventListener('click', openAchievements);
-    achievementsBackBtn.addEventListener('click', closeAchievements);
-    referralBtn.addEventListener('click', openReferral);
-    referralBackBtn.addEventListener('click', closeReferral);
-    leaderboardBtn.addEventListener('click', openLeaderboard);
-    leaderboardBackBtn.addEventListener('click', closeLeaderboard);
+    shopBtn.addEventListener('click', () => { mainMenu.classList.remove('active'); shopMenu.style.display = 'flex'; });
+    shopBackBtn.addEventListener('click', () => { shopMenu.style.display = 'none'; mainMenu.classList.add('active'); });
+    achievementsBtn.addEventListener('click', () => { mainMenu.classList.remove('active'); achievementsMenu.style.display = 'flex'; });
+    achievementsBackBtn.addEventListener('click', () => { achievementsMenu.style.display = 'none'; mainMenu.classList.add('active'); });
+    referralBtn.addEventListener('click', () => { mainMenu.classList.remove('active'); referralMenu.style.display = 'flex'; });
+    referralBackBtn.addEventListener('click', () => { referralMenu.style.display = 'none'; mainMenu.classList.add('active'); });
+    leaderboardBtn.addEventListener('click', () => { mainMenu.classList.remove('active'); leaderboardMenu.style.display = 'flex'; });
+    leaderboardBackBtn.addEventListener('click', () => { leaderboardMenu.style.display = 'none'; mainMenu.classList.add('active'); });
     settingsBtn.addEventListener('click', openSettings);
     settingsBackBtn.addEventListener('click', closeSettings);
     soundToggle.addEventListener('click', toggleSound);
@@ -342,7 +604,6 @@ function drawBird() {
 }
 
 function collisionDetection(pipe) {
-    // Границы птички
     const birdRight = birdX + 34;
     const birdBottom = birdY + 24;
 
@@ -391,8 +652,6 @@ function updateScore() {
     bestScoreElement.textContent = `РЕКОРД: ${bestScore}`;
 }
 
-// Магазин, достижения и т.д. (остались без изменений, но добавьте если нужно)
-
 // Настройки
 function openSettings() {
     mainMenu.classList.remove('active');
@@ -414,10 +673,6 @@ function toggleSound() {
 function updateSoundToggle() {
     soundToggle.textContent = isSoundOn ? 'ВКЛ' : 'ВЫКЛ';
 }
-
-// Загрузка/сохранение (без изменений)
-
-// Другие функции как initShop, initAchievements и т.д. остаются как в оригинале
 
 // Запуск
 document.addEventListener('DOMContentLoaded', () => {
