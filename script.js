@@ -243,6 +243,10 @@ function initShop() {
                 if (tg && tg.showAlert) tg.showAlert('Недостаточно монет!');
             }
         });
+        btn.addEventListener('touchend', e => { // Добавлено для mobile Telegram
+            e.preventDefault();
+            btn.click(); // Симулировать click
+        });
     });
 }
 
@@ -434,25 +438,19 @@ function initGame() {
     initLeaderboard();
     updateSoundToggle();
     
-    // Event listeners для меню
-    startBtn.addEventListener('click', startGame);
-    restartBtn.addEventListener('click', restartGame);
-    mainMenuBtn.addEventListener('click', returnToMainMenu);
-    shopBtn.addEventListener('click', () => { mainMenu.classList.remove('active'); shopMenu.style.display = 'flex'; });
-    shopBackBtn.addEventListener('click', () => { shopMenu.style.display = 'none'; mainMenu.classList.add('active'); });
-    achievementsBtn.addEventListener('click', () => { mainMenu.classList.remove('active'); achievementsMenu.style.display = 'flex'; });
-    achievementsBackBtn.addEventListener('click', () => { achievementsMenu.style.display = 'none'; mainMenu.classList.add('active'); });
-    referralBtn.addEventListener('click', () => { mainMenu.classList.remove('active'); referralMenu.style.display = 'flex'; });
-    referralBackBtn.addEventListener('click', () => { referralMenu.style.display = 'none'; mainMenu.classList.add('active'); });
-    leaderboardBtn.addEventListener('click', () => { mainMenu.classList.remove('active'); leaderboardMenu.style.display = 'flex'; });
-    leaderboardBackBtn.addEventListener('click', () => { leaderboardMenu.style.display = 'none'; mainMenu.classList.add('active'); });
-    settingsBtn.addEventListener('click', openSettings);
-    settingsBackBtn.addEventListener('click', closeSettings);
-    soundToggle.addEventListener('click', toggleSound);
-    copyLinkBtn.addEventListener('click', copyReferralLink);
-    shareBtn.addEventListener('click', shareGame);
+    // Event listeners для меню с добавлением touchend для mobile
+    const menuButtons = [startBtn, restartBtn, mainMenuBtn, shopBtn, shopBackBtn, achievementsBtn, achievementsBackBtn, referralBtn, referralBackBtn, leaderboardBtn, leaderboardBackBtn, settingsBtn, settingsBackBtn, soundToggle, copyLinkBtn, shareBtn];
+    menuButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            console.log(`Button clicked: ${btn.id}`); // Debug для проверки кликов
+        });
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            btn.click(); // Симулировать click на touchend
+        });
+    });
     
-    // Touch/click listeners на body для надежности
+    // Touch/click listeners на body для игры
     document.body.addEventListener('touchstart', handleInput, { passive: false });
     document.body.addEventListener('click', handleInput); // Fallback для desktop
     
@@ -483,6 +481,7 @@ function startGame() {
     startScreen.style.display = 'block';
     gameActive = true;
     resetGame();
+    resizeCanvas(); // Принудительный resize для избежания white screen
     lastTime = performance.now();
     requestAnimationFrame(gameLoop);
 }
@@ -505,6 +504,7 @@ function resetGame() {
 
 // Цикл игры с delta-time
 function gameLoop(timestamp) {
+    console.log('Game loop running'); // Debug для проверки, запускается ли loop
     if (!lastTime) lastTime = timestamp;
     const delta = (timestamp - lastTime) / 16.67; // Нормализация на 60fps
     lastTime = timestamp;
@@ -535,8 +535,8 @@ function gameLoop(timestamp) {
     // Движение и рисование труб
     pipes.forEach((pipe, index) => {
         pipe.x -= 2 * delta;
-        ctx.drawImage(pipeUp, pipe.x, pipe.y - pipeUp.height - gap);
-        ctx.drawImage(pipeBottom, pipe.x, pipe.y);
+        if (pipeUp.complete) ctx.drawImage(pipeUp, pipe.x, pipe.y - pipeUp.height - gap); // Check complete
+        if (pipeBottom.complete) ctx.drawImage(pipeBottom, pipe.x, pipe.y);
 
         // Счет
         if (pipe.x + pipeUp.width < birdX && !pipe.scored) {
@@ -557,7 +557,7 @@ function gameLoop(timestamp) {
     // Монеты
     coinsList.forEach((c, index) => {
         c.x -= 2 * delta;
-        if (!c.collected) {
+        if (!c.collected && coin.complete) {
             ctx.drawImage(coin, c.x, c.y, 30, 30);
             if (Math.abs(c.x - birdX) < 20 && Math.abs(c.y - birdY) < 20) {
                 coinsCollected++;
@@ -578,8 +578,10 @@ function gameLoop(timestamp) {
     // Рисование земли
     fgX -= 2 * delta;
     if (fgX <= -canvas.width) fgX = 0;
-    ctx.drawImage(fg, fgX, canvas.height - fg.height);
-    ctx.drawImage(fg, fgX + canvas.width, canvas.height - fg.height);
+    if (fg.complete) {
+        ctx.drawImage(fg, fgX, canvas.height - fg.height);
+        ctx.drawImage(fg, fgX + canvas.width, canvas.height - fg.height);
+    }
 
     drawBird();
 
@@ -595,12 +597,16 @@ function gameLoop(timestamp) {
 function drawBackground() {
     bgX -= 0.5; // Медленнее земли
     if (bgX <= -canvas.width) bgX = 0;
-    ctx.drawImage(bg, bgX, 0, canvas.width, canvas.height);
-    ctx.drawImage(bg, bgX + canvas.width, 0, canvas.width, canvas.height);
+    if (bg.complete) {
+        ctx.drawImage(bg, bgX, 0, canvas.width, canvas.height);
+        ctx.drawImage(bg, bgX + canvas.width, 0, canvas.width, canvas.height);
+    }
 }
 
 function drawBird() {
-    ctx.drawImage(bird, birdX, birdY, 34, 24);
+    if (bird.complete) {
+        ctx.drawImage(bird, birdX, birdY, 34, 24);
+    }
 }
 
 function collisionDetection(pipe) {
