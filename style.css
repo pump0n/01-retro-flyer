@@ -158,6 +158,7 @@ body {
     justify-content: center;
     z-index: 30;
     backdrop-filter: blur(5px);
+    pointer-events: auto; // Обеспечивает кликабельность
 }
 
 .main-menu.active {
@@ -208,6 +209,7 @@ body {
     transition: all 0.3s;
     min-width: 250px;
     border-radius: 0;
+    pointer-events: auto; // Для кликабельности в menu
 }
 
 .btn:hover {
@@ -282,6 +284,7 @@ body {
     z-index: 50;
     backdrop-filter: blur(3px);
     text-shadow: 0 0 5px rgba(78, 205, 196, 0.8);
+    pointer-events: none; // Не блокировать клики под ним
 }
 
 .start-text {
