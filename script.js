@@ -95,7 +95,7 @@ let lastTime = 0; // Для delta-time
 let initialized = false; // Флаг для предотвращения дублирования
 const fixedStep = 1 / 60; // Fixed timestep for updates (60Hz)
 let accumulator = 0; // Для fixed timestep
-const scale = 1.5; // Увеличение масштаба для избежания скомканности
+const scale = 2; // Увеличение масштаба для избежания скомканности
 
 // Система достижений
 const achievements = [
@@ -688,7 +688,7 @@ function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Background
-    drawTiled(bg, bgX, 0);
+    drawTiled(bg, bgX, 0, canvas.height - fg.height); // Draw bg to connect to fg
 
     if (!gameStarted) {
         drawBird();
@@ -713,13 +713,13 @@ function render() {
 }
 
 // Seamless tiling for images (for bg and fg)
-function drawTiled(img, x, y) {
+function drawTiled(img, x, y, height = img.height) {
     if (!img.complete) return;
     const tileWidth = img.width;
     const startX = Math.floor(x % tileWidth);
     let currentX = startX - tileWidth; // Start offscreen left
     while (currentX < canvas.width) {
-        ctx.drawImage(img, currentX, y, tileWidth, img.height);
+        ctx.drawImage(img, currentX, y, tileWidth, height);
         currentX += tileWidth;
     }
 }
