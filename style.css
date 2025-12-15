@@ -125,6 +125,7 @@ body {
     user-select: none;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
+    pointer-events: none; // Только для рендера, касания на body
 }
 
 .status-bar {
@@ -158,7 +159,7 @@ body {
     justify-content: center;
     z-index: 30;
     backdrop-filter: blur(5px);
-    pointer-events: auto; // Обеспечивает кликабельность
+    pointer-events: auto;
 }
 
 .main-menu.active {
@@ -209,7 +210,7 @@ body {
     transition: all 0.3s;
     min-width: 250px;
     border-radius: 0;
-    pointer-events: auto; // Для кликабельности в menu
+    pointer-events: auto;
 }
 
 .btn:hover {
