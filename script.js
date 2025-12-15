@@ -92,6 +92,7 @@ let currentBird = 'default';
 let lastTouchTime = 0;
 let touchCooldown = 200; // Настроено для лучшей отзывчивости
 let lastTime = 0; // Для delta-time
+let initialized = false; // Флаг для предотвращения дублирования
 
 // Система достижений
 const achievements = [
@@ -427,6 +428,9 @@ function shareGame() {
 
 // Инициализация игры
 function initGame() {
+    if (initialized) return; // Предотвращение дублирования
+    initialized = true;
+
     loadingScreen.style.opacity = '0';
     setTimeout(() => loadingScreen.style.display = 'none', 300);
     
@@ -441,14 +445,94 @@ function initGame() {
     // Event listeners для меню с добавлением touchend для mobile
     const menuButtons = [startBtn, restartBtn, mainMenuBtn, shopBtn, shopBackBtn, achievementsBtn, achievementsBackBtn, referralBtn, referralBackBtn, leaderboardBtn, leaderboardBackBtn, settingsBtn, settingsBackBtn, soundToggle, copyLinkBtn, shareBtn];
     menuButtons.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            console.log(`Button clicked: ${btn.id}`); // Debug для проверки кликов
-        });
-        btn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            btn.click(); // Симулировать click на touchend
-        });
+        btn.removeEventListener('click', handleButtonClick); // Удаляем предыдущие, если есть
+        btn.addEventListener('click', handleButtonClick);
+        btn.removeEventListener('touchend', handleTouchEnd); // Удаляем предыдущие
+        btn.addEventListener('touchend', handleTouchEnd);
     });
+
+    function handleButtonClick(e) {
+        console.log(`Button clicked: ${e.target.id}`); // Debug
+    }
+
+    function handleTouchEnd(e) {
+        e.preventDefault();
+        e.target.click(); // Симулировать click
+    }
+
+    // Функциональные слушатели (без дублирования)
+    startBtn.removeEventListener('click', startGame);
+    startBtn.addEventListener('click', startGame);
+    restartBtn.removeEventListener('click', restartGame);
+    restartBtn.addEventListener('click', restartGame);
+    mainMenuBtn.removeEventListener('click', returnToMainMenu);
+    mainMenuBtn.addEventListener('click', returnToMainMenu);
+    shopBtn.removeEventListener('click', openShop);
+    shopBtn.addEventListener('click', openShop);
+    shopBackBtn.removeEventListener('click', closeShop);
+    shopBackBtn.addEventListener('click', closeShop);
+    achievementsBtn.removeEventListener('click', openAchievements);
+    achievementsBtn.addEventListener('click', openAchievements);
+    achievementsBackBtn.removeEventListener('click', closeAchievements);
+    achievementsBackBtn.addEventListener('click', closeAchievements);
+    referralBtn.removeEventListener('click', openReferral);
+    referralBtn.addEventListener('click', openReferral);
+    referralBackBtn.removeEventListener('click', closeReferral);
+    referralBackBtn.addEventListener('click', closeReferral);
+    leaderboardBtn.removeEventListener('click', openLeaderboard);
+    leaderboardBtn.addEventListener('click', openLeaderboard);
+    leaderboardBackBtn.removeEventListener('click', closeLeaderboard);
+    leaderboardBackBtn.addEventListener('click', closeLeaderboard);
+    settingsBtn.removeEventListener('click', openSettings);
+    settingsBtn.addEventListener('click', openSettings);
+    settingsBackBtn.removeEventListener('click', closeSettings);
+    settingsBackBtn.addEventListener('click', closeSettings);
+    soundToggle.removeEventListener('click', toggleSound);
+    soundToggle.addEventListener('click', toggleSound);
+    copyLinkBtn.removeEventListener('click', copyReferralLink);
+    copyLinkBtn.addEventListener('click', copyReferralLink);
+    shareBtn.removeEventListener('click', shareGame);
+    shareBtn.addEventListener('click', shareGame);
+
+    function openShop() {
+        mainMenu.classList.remove('active');
+        shopMenu.style.display = 'flex';
+    }
+
+    function closeShop() {
+        shopMenu.style.display = 'none';
+        mainMenu.classList.add('active');
+    }
+
+    function openAchievements() {
+        mainMenu.classList.remove('active');
+        achievementsMenu.style.display = 'flex';
+    }
+
+    function closeAchievements() {
+        achievementsMenu.style.display = 'none';
+        mainMenu.classList.add('active');
+    }
+
+    function openReferral() {
+        mainMenu.classList.remove('active');
+        referralMenu.style.display = 'flex';
+    }
+
+    function closeReferral() {
+        referralMenu.style.display = 'none';
+        mainMenu.classList.add('active');
+    }
+
+    function openLeaderboard() {
+        mainMenu.classList.remove('active');
+        leaderboardMenu.style.display = 'flex';
+    }
+
+    function closeLeaderboard() {
+        leaderboardMenu.style.display = 'none';
+        mainMenu.classList.add('active');
+    }
     
     // Touch/click listeners на body для игры
     document.body.addEventListener('touchstart', handleInput, { passive: false });
