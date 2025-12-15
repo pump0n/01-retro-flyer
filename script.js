@@ -10,7 +10,6 @@ const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 const mainMenu = document.querySelector('.main-menu');
 const gameOverMenu = document.querySelector('.game-over-menu');
-const startScreen = document.querySelector('.start-screen');
 const loadingScreen = document.getElementById('loading-screen');
 const shopMenu = document.querySelector('.shop-menu');
 const achievementsMenu = document.querySelector('.achievements-menu');
@@ -80,7 +79,7 @@ let gameStarted = false;
 let pipes = [];
 let coinsList = [];
 let birdX, birdY, velocity = 0;
-const gravity = 0.4;
+const gravity = 0.35;
 const jumpPower = -6.5;
 const gap = 120; // Уменьшенный зазор между трубами
 let frame = 0;
@@ -269,7 +268,6 @@ function showMainMenu() {
     achievementsMenu.classList.remove('active');
     referralMenu.classList.remove('active');
     leaderboardMenu.classList.remove('active');
-    startScreen.classList.remove('active');
 }
 
 // Управление игрой
@@ -278,7 +276,6 @@ canvas.addEventListener('click', handleClick);
 canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 
-// Обработчики событий
 function handleKey(e) {
     if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault();
@@ -328,9 +325,6 @@ function startGame() {
     mainMenu.classList.remove('active');
     gameOverMenu.classList.remove('active');
     
-    // Показать стартовый экран
-    startScreen.classList.add('active');
-    
     // Сбросить игру
     score = 0;
     coinsCollected = 0;
@@ -367,8 +361,8 @@ function startGame() {
 }
 
 function startPlaying() {
+    if (!gameActive) return;
     gameStarted = true;
-    startScreen.classList.remove('active');
     jump();
 }
 
@@ -380,7 +374,7 @@ function jump() {
     }
 }
 
-// Добавление труб (исправленная версия)
+// Добавление труб
 function addPipe() {
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
@@ -431,16 +425,18 @@ function drawBackground() {
     }
 }
 
-// Отрисовка труб (исправленная версия)
+// Отрисовка труб
 function drawPipes() {
+    const pipeWidth = pipeUp.width;
+    
     pipes.forEach(pipe => {
         // Верхняя труба: начинается сверху и идет вниз до gapY
         const topPipeHeight = pipe.gapY;
         
         if (topPipeHeight > 0) {
-            // Рисуем верхнюю трубу (от верха до gapY)
-            ctx.drawImage(pipeUp, 0, 0, pipeUp.width, topPipeHeight,
-                pipe.x, 0, pipeUp.width, topPipeHeight);
+            // Рисуем верхнюю трубу
+            ctx.drawImage(pipeUp, 0, 0, pipeWidth, topPipeHeight,
+                pipe.x, 0, pipeWidth, topPipeHeight);
         }
         
         // Нижняя труба: начинается с земли и идет вверх до gapY + gap
@@ -451,9 +447,9 @@ function drawPipes() {
         const bottomPipeHeight = groundY - bottomPipeY;
         
         if (bottomPipeHeight > 0 && bottomPipeY < groundY) {
-            // Рисуем нижнюю трубу (от bottomPipeY до земли)
-            ctx.drawImage(pipeBottom, 0, 0, pipeBottom.width, bottomPipeHeight,
-                pipe.x, bottomPipeY, pipeBottom.width, bottomPipeHeight);
+            // Рисуем нижнюю трубу
+            ctx.drawImage(pipeBottom, 0, 0, pipeWidth, bottomPipeHeight,
+                pipe.x, bottomPipeY, pipeWidth, bottomPipeHeight);
         }
     });
 }
@@ -520,9 +516,8 @@ function gameLoop() {
     // Отрисовка земли
     drawForeground();
     
-    // Если игра не началась - показать стартовый экран
+    // Если игра не началась - показать инструкцию
     if (!gameStarted) {
-        // Рисуем стартовый экран поверх игры
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#FFFFFF';
@@ -643,7 +638,7 @@ function updateCoins() {
     }
 }
 
-// ИСПРАВЛЕННАЯ проверка столкновений
+// Исправленная проверка столкновений
 function checkCollisions() {
     const birdLeft = birdX;
     const birdRight = birdX + bird.width;
@@ -661,8 +656,8 @@ function checkCollisions() {
     
     // Проверка столкновения с потолком
     if (birdTop <= 0) {
-        gameOver();
-        return;
+        birdY = 0;
+        velocity = 0;
     }
     
     // Проверка столкновений с трубами
