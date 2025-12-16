@@ -75,8 +75,8 @@ let gameStarted = false;
 let pipes = [];
 let coinsList = [];
 let birdX, birdY, velocity = 0;
-const gravity = 0.2; // Уменьшено для большей плавности
-const jumpPower = -5; // Уменьшено для floatier прыжков
+const gravity = 0.15; // Уменьшено для плавности
+const jumpPower = -4.5; // Уменьшено для floatier прыжков
 const gap = 120;
 let frame = 0;
 let isSoundOn = true;
@@ -92,11 +92,11 @@ let lastTime = 0; // Для delta-time
 let initialized = false; // Флаг для предотвращения дублирования
 const fixedStep = 1 / 60; // Fixed timestep for updates (60Hz)
 let accumulator = 0; // Для fixed timestep
-const scale = 1; // Уменьшен масштаб с 2 до 1 для нормального размера
+const scale = 0.8; // Уменьшен масштаб еще раз
 // Камера для фокуса на птичке (вертикальный скроллинг)
 let cameraY = 0; // Смещение камеры по Y
-const cameraFollowSpeed = 0.1; // Скорость следования камеры за птичкой
-const viewHeight = window.innerHeight * 0.6; // Видимая высота фокуса (меньше полного экрана для фокуса на птичке)
+const cameraFollowSpeed = 0.2; // Увеличено для меньшего дерганья
+let viewHeight = 0; // Будет инициализировано в resizeCanvas
 // Снежинки для главного меню
 let snowflakes = [];
 const snowflakeCount = 50;
@@ -104,8 +104,8 @@ function createSnowflakes() {
     snowflakes = [];
     for (let i = 0; i < snowflakeCount; i++) {
         snowflakes.push({
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
+            x: Math.random() * mainMenu.clientWidth,
+            y: Math.random() * mainMenu.clientHeight,
             speed: Math.random() * 2 + 1,
             size: Math.random() * 4 + 2
         });
@@ -113,15 +113,17 @@ function createSnowflakes() {
 }
 function updateSnowflakes() {
     if (!isSnowOn || !mainMenu.classList.contains('active')) return;
-    const snowCanvas = document.createElement('canvas');
+    let snowCanvas = document.getElementById('snow-canvas');
+    if (snowCanvas) snowCanvas.remove(); // Удаляем предыдущий, если есть
+    snowCanvas = document.createElement('canvas');
     snowCanvas.id = 'snow-canvas';
-    snowCanvas.width = window.innerWidth;
-    snowCanvas.height = window.innerHeight;
+    snowCanvas.width = mainMenu.clientWidth;
+    snowCanvas.height = mainMenu.clientHeight;
     snowCanvas.style.position = 'absolute';
     snowCanvas.style.top = '0';
     snowCanvas.style.left = '0';
     snowCanvas.style.pointerEvents = 'none';
-    document.body.appendChild(snowCanvas);
+    mainMenu.appendChild(snowCanvas); // Добавляем внутрь mainMenu
     const snowCtx = snowCanvas.getContext('2d');
     function animateSnow() {
         snowCtx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
@@ -213,6 +215,7 @@ function resizeCanvas() {
     canvas.style.height = height + 'px';
     birdX = canvas.width / 4;
     birdY = canvas.height / 2;
+    viewHeight = canvas.height * 0.6; // Адаптировано под canvas
     ctx.imageSmoothingEnabled = false;
 }
 window.addEventListener('resize', () => {
