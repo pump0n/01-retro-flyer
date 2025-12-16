@@ -165,6 +165,10 @@ body {
     pointer-events: auto;
 }
 
+.main-menu {
+    position: relative; /* Для позиционирования снежинок внутри */
+}
+
 .main-menu.active {
     display: flex;
 }
@@ -180,6 +184,7 @@ body {
     max-width: 350px;
     width: 90%;
     box-shadow: 0 0 20px rgba(78, 205, 196, 0.5);
+    z-index: 2; /* Над снежинками */
 }
 
 .menu-title {
@@ -289,6 +294,7 @@ body {
     backdrop-filter: blur(3px);
     text-shadow: 0 0 5px rgba(78, 205, 196, 0.8);
     pointer-events: none; // Не блокировать клики под ним
+    text-align: center; /* Для центрирования текста */
 }
 
 .start-text {
