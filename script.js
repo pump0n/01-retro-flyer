@@ -97,6 +97,7 @@ const scale = 0.7; // Уменьшен масштаб еще раз
 let cameraY = 0; // Смещение камеры по Y
 const cameraFollowSpeed = 0.3; // Увеличено для плавности
 let viewHeight = 0; // Будет инициализировано в resizeCanvas
+let gameHeight = 0; // Будет canvas.height * 1.5 or something
 // Снежинки для главного меню
 let snowflakes = [];
 const snowflakeCount = 50;
@@ -223,6 +224,7 @@ function resizeCanvas() {
     birdX = canvas.width / 4;
     birdY = canvas.height / 2;
     viewHeight = canvas.height * 0.6; // Адаптировано под canvas
+    gameHeight = canvas.height * 2; // Увеличенная высота игрового поля
     ctx.imageSmoothingEnabled = false;
     createSnowflakes();
     updateSnowflakes();
@@ -674,20 +676,19 @@ function update(dt) {
         birdY = 0;
         velocity = 0;
     }
-    // Камера следует за птичкой вертикально только вверх
-    const targetCameraY = Math.max(0, birdY - (canvas.height / 2));
+    // Камера следует за птичкой вертикально
+    const targetCameraY = birdY - (canvas.height / 2) + 12; // Центр на птичке (24/2)
     cameraY += (targetCameraY - cameraY) * cameraFollowSpeed;
-    // Ограничение камеры, чтобы земля была внизу
-    const groundY = canvas.height - fg.height;
-    cameraY = Math.min(cameraY, groundY - canvas.height + fg.height); // Не ниже земли
-    cameraY = Math.max(cameraY, 0); // Не выше верха
+    // Ограничение камеры
+    cameraY = Math.max(0, cameraY); // Не выше верха
+    cameraY = Math.min(cameraY, gameHeight - canvas.height); // Не ниже низа
     frame++;
     // Генерация труб/монет заранее (за canvas.width / 2)
     if (frame % 100 === 0) {
-        const topHeight = Math.floor(Math.random() * (canvas.height - fg.height - gap - 100)) + 50; // Ограничение topHeight для проходимости
-        const bottomY = canvas.height - fg.height; // From ground
+        const topHeight = Math.floor(Math.random() * (gameHeight - fg.height - gap - 100)) + 50; // Ограничение topHeight для проходимости
+        const bottomY = gameHeight - fg.height; // From ground
         const bottomHeight = bottomY - gap - topHeight; // Lower height to fill to gap
-        if (bottomHeight > 0) { // Только если bottomHeight положительный
+        if (bottomHeight > 50) { // Только если bottomHeight достаточен
             pipes.push({ x: canvas.width + 200, topHeight, bottomHeight, scored: false });
             if (Math.random() > 0.5) {
                 coinsList.push({ x: canvas.width + 250, y: topHeight + gap / 2, collected: false });
@@ -723,7 +724,7 @@ function update(dt) {
         if (c.x < -30) coinsList.splice(index, 1);
     });
     // Коллизия с землей
-    if (birdY + 24 > canvas.height - fg.height) {
+    if (birdY + 24 > gameHeight - fg.height) {
         endGame();
     }
     // Скорости для фона и земли
@@ -738,7 +739,7 @@ function render() {
     ctx.save();
     ctx.translate(0, -cameraY); // Смещение камеры
     // Background
-    drawTiled(bg, bgX, 0, canvas.height - fg.height); // Draw bg to connect to fg
+    drawTiled(bg, bgX, 0, gameHeight - fg.height); // Draw bg to connect to fg
     if (!gameStarted) {
         drawBird();
         ctx.restore();
@@ -747,14 +748,14 @@ function render() {
     // Pipes
     pipes.forEach(pipe => {
         ctx.drawImage(pipeUp, pipe.x, 0, pipeUp.width, pipe.topHeight); // Upper from top
-        ctx.drawImage(pipeBottom, pipe.x, canvas.height - fg.height - pipe.bottomHeight, pipeBottom.width, pipe.bottomHeight); // Lower from ground
+        ctx.drawImage(pipeBottom, pipe.x, gameHeight - fg.height - pipe.bottomHeight, pipeBottom.width, pipe.bottomHeight); // Lower from ground
     });
     // Coins
     coinsList.forEach(c => {
         if (!c.collected && coin.complete) ctx.drawImage(coin, c.x, c.y, 30, 30);
     });
     // Ground
-    drawTiled(fg, fgX, canvas.height - fg.height);
+    drawTiled(fg, fgX, gameHeight - fg.height);
     drawBird();
     ctx.restore();
 }
@@ -783,9 +784,9 @@ function collisionDetection(pipe) {
         return true;
     }
     // Нижняя труба (from ground - bottomHeight to ground)
-    const bottomY = canvas.height - fg.height - pipe.bottomHeight;
+    const bottomY = gameHeight - fg.height - pipe.bottomHeight;
     if (birdX < pipe.x + pipeBottom.width && birdRight > pipe.x &&
-        birdY < canvas.height - fg.height && birdBottom > bottomY) {
+        birdY < gameHeight - fg.height && birdBottom > bottomY) {
         return true;
     }
     return false;
