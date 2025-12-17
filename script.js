@@ -75,8 +75,8 @@ let gameStarted = false;
 let pipes = [];
 let coinsList = [];
 let birdX, birdY, velocity = 0;
-const gravity = 0.15; // Уменьшено для плавности
-const jumpPower = -4.5; // Уменьшено для floatier прыжков
+const gravity = 0.25; // Как в оригинале Flappy Bird
+const jumpPower = -6.5; // Как в оригинале
 const gap = 120;
 let frame = 0;
 let isSoundOn = true;
@@ -92,14 +92,15 @@ let lastTime = 0; // Для delta-time
 let initialized = false; // Флаг для предотвращения дублирования
 const fixedStep = 1 / 60; // Fixed timestep for updates (60Hz)
 let accumulator = 0; // Для fixed timestep
-const scale = 0.8; // Уменьшен масштаб еще раз
+const scale = 0.7; // Уменьшен масштаб еще раз
 // Камера для фокуса на птичке (вертикальный скроллинг)
 let cameraY = 0; // Смещение камеры по Y
-const cameraFollowSpeed = 0.2; // Увеличено для меньшего дерганья
+const cameraFollowSpeed = 0.3; // Увеличено для плавности
 let viewHeight = 0; // Будет инициализировано в resizeCanvas
 // Снежинки для главного меню
 let snowflakes = [];
 const snowflakeCount = 50;
+let snowAnimationFrame = null;
 function createSnowflakes() {
     snowflakes = [];
     for (let i = 0; i < snowflakeCount; i++) {
@@ -112,18 +113,24 @@ function createSnowflakes() {
     }
 }
 function updateSnowflakes() {
-    if (!isSnowOn || !mainMenu.classList.contains('active')) return;
+    if (!isSnowOn || !mainMenu.classList.contains('active')) {
+        if (snowAnimationFrame) cancelAnimationFrame(snowAnimationFrame);
+        const snowCanvas = document.getElementById('snow-canvas');
+        if (snowCanvas) snowCanvas.remove();
+        return;
+    }
     let snowCanvas = document.getElementById('snow-canvas');
-    if (snowCanvas) snowCanvas.remove(); // Удаляем предыдущий, если есть
-    snowCanvas = document.createElement('canvas');
-    snowCanvas.id = 'snow-canvas';
+    if (!snowCanvas) {
+        snowCanvas = document.createElement('canvas');
+        snowCanvas.id = 'snow-canvas';
+        snowCanvas.style.position = 'absolute';
+        snowCanvas.style.top = '0';
+        snowCanvas.style.left = '0';
+        snowCanvas.style.pointerEvents = 'none';
+        mainMenu.prepend(snowCanvas); // Добавляем в начало mainMenu
+    }
     snowCanvas.width = mainMenu.clientWidth;
     snowCanvas.height = mainMenu.clientHeight;
-    snowCanvas.style.position = 'absolute';
-    snowCanvas.style.top = '0';
-    snowCanvas.style.left = '0';
-    snowCanvas.style.pointerEvents = 'none';
-    mainMenu.appendChild(snowCanvas); // Добавляем внутрь mainMenu
     const snowCtx = snowCanvas.getContext('2d');
     function animateSnow() {
         snowCtx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
@@ -135,11 +142,7 @@ function updateSnowflakes() {
             snowCtx.fillStyle = '#fff';
             snowCtx.fill();
         });
-        if (isSnowOn && mainMenu.classList.contains('active')) {
-            requestAnimationFrame(animateSnow);
-        } else {
-            snowCanvas.remove();
-        }
+        snowAnimationFrame = requestAnimationFrame(animateSnow);
     }
     animateSnow();
 }
@@ -208,6 +211,10 @@ function resizeCanvas() {
         width = height * (9 / 16); // 9:16 ratio
         canvas.style.margin = '0 auto'; // Центрировать
         canvas.style.display = 'block';
+    } else {
+        // Для мобильных: full screen
+        width = window.innerWidth;
+        height = window.innerHeight;
     }
     canvas.width = width * scale;
     canvas.height = height * scale;
@@ -217,6 +224,8 @@ function resizeCanvas() {
     birdY = canvas.height / 2;
     viewHeight = canvas.height * 0.6; // Адаптировано под canvas
     ctx.imageSmoothingEnabled = false;
+    createSnowflakes();
+    updateSnowflakes();
 }
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
@@ -607,7 +616,7 @@ function handleInput(e) {
 // Старт игры
 function startGame() {
     mainMenu.classList.remove('active');
-    startScreen.style.display = 'block';
+    startScreen.style.display = 'flex'; // Изменено на flex для центрирования
     gameActive = true;
     resetGame();
     resizeCanvas(); // Принудительный resize для избежания white screen
@@ -653,13 +662,16 @@ function update(dt) {
     velocity += gravity * dt * 60; // Normalize to 60fps
     birdY += velocity * dt * 60;
     if (birdY < 0) { // Collision with sky (ceiling)
-        endGame();
+        birdY = 0;
+        velocity = 0;
     }
-    // Камера следует за птичкой вертикально
-    const targetCameraY = birdY - (canvas.height / 2) + (viewHeight / 2); // Фокус на птичке
+    // Камера следует за птичкой вертикально только вверх
+    const targetCameraY = Math.max(0, birdY - (canvas.height / 2));
     cameraY += (targetCameraY - cameraY) * cameraFollowSpeed;
-    // Ограничение камеры
-    cameraY = Math.max(0, Math.min(cameraY, canvas.height - viewHeight));
+    // Ограничение камеры, чтобы земля была внизу
+    const groundY = canvas.height - fg.height;
+    cameraY = Math.min(cameraY, groundY - canvas.height + fg.height); // Не ниже земли
+    cameraY = Math.max(cameraY, 0); // Не выше верха
     frame++;
     // Генерация труб/монет заранее (за canvas.width / 2)
     if (frame % 100 === 0) {
@@ -804,6 +816,7 @@ function openSettings() {
 function closeSettings() {
     settingsMenu.style.display = 'none';
     mainMenu.classList.add('active');
+    updateSnowflakes();
 }
 function toggleSound() {
     isSoundOn = !isSoundOn;
