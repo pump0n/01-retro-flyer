@@ -684,8 +684,8 @@ function update(dt) {
     cameraY = Math.min(cameraY, gameHeight - canvas.height); // Не ниже низа
     frame++;
     // Генерация труб/монет заранее (за canvas.width / 2)
-    if (frame % 100 === 0) {
-        const topHeight = Math.floor(Math.random() * (gameHeight - fg.height - gap - 100)) + 50; // Ограничение topHeight для проходимости
+    if (frame % 130 === 0) {
+        const topHeight = Math.floor(Math.random() * (gameHeight - fg.height - gap - 200)) + 100; // Ограничение topHeight для проходимости
         const bottomY = gameHeight - fg.height; // From ground
         const bottomHeight = bottomY - gap - topHeight; // Lower height to fill to gap
         if (bottomHeight > 50) { // Только если bottomHeight достаточен
