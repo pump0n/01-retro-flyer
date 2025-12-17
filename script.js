@@ -1,4 +1,3 @@
-```javascript
 // Инициализация Telegram WebApp
 const tg = window.Telegram.WebApp || {}; // Fallback для не-Telegram
 if (tg.expand) {
@@ -286,7 +285,7 @@ function initShop() {
             shopItem.innerHTML = `
                 <div class="shop-name">${item.name}</div>
                 <div class="shop-desc">${item.description}</div>
-                <button class="btn-small" data-id="${item.id}" $$ {currentBird === item.id ? 'disabled' : ''}> $${currentBird === item.id ? 'ВЫБРАНО' : 'ВЫБРАТЬ'}</button>
+                <button class="btn-small" data-id="${item.id}" ${currentBird === item.id ? 'disabled' : ''}>${currentBird === item.id ? 'ВЫБРАНО' : 'ВЫБРАТЬ'}</button>
             `;
         } else {
             shopItem.innerHTML = `
@@ -690,9 +689,9 @@ function update(dt) {
         const bottomY = gameHeight - fg.height; // From ground
         const bottomHeight = bottomY - gap - topHeight; // Lower height to fill to gap
         if (bottomHeight > 50) { // Только если bottomHeight достаточен
-            pipes.push({ x: canvas.width + 400, topHeight, bottomHeight, scored: false }); // Далее для видимости
+            pipes.push({ x: canvas.width + 200, topHeight, bottomHeight, scored: false });
             if (Math.random() > 0.5) {
-                coinsList.push({ x: canvas.width + 450, y: topHeight + gap / 2, collected: false });
+                coinsList.push({ x: canvas.width + 250, y: topHeight + gap / 2, collected: false });
             }
         }
     }
