@@ -1,6 +1,6 @@
 // Инициализация Telegram WebApp
-const tg = window.Telegram.WebApp;
-if (tg) {
+const tg = window.Telegram.WebApp || {}; // Fallback для не-Telegram
+if (tg.expand) {
     tg.expand();
     tg.ready();
 }
@@ -313,7 +313,7 @@ function initShop() {
                 initShop();
                 saveGameData();
             } else {
-                if (tg && tg.showAlert) tg.showAlert('Недостаточно монет!');
+                if (tg.showAlert) tg.showAlert('Недостаточно монет!');
             }
         });
         btn.addEventListener('touchend', e => { // Добавлено для mobile Telegram
@@ -342,7 +342,7 @@ function checkAchievements() {
         if (!ach.unlocked && score >= ach.score) {
             ach.unlocked = true;
             updated = true;
-            if (tg && tg.showAlert) tg.showAlert(`Достижение разблокировано: ${ach.name}!`);
+            showToast(`Достижение разблокировано: ${ach.name}!`);
         }
     });
     if (updated) {
@@ -350,10 +350,19 @@ function checkAchievements() {
         saveGameData();
     }
 }
+// Функция для показа toast
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.style.display = 'block';
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 3000);
+}
 // Инициализация рефералов
 function initReferral() {
     let userId = 'user_' + Date.now();
-    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
         userId = tg.initDataUnsafe.user.id.toString();
     }
    
@@ -362,14 +371,14 @@ function initReferral() {
     referralLinkInput.value = referralLink;
    
     // Проверка реферального кода при запуске
-    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+    if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
         const refCode = tg.initDataUnsafe.start_param;
         handleReferral(refCode);
     }
 }
 function handleReferral(refCode) {
     let userId = 'user_' + Date.now();
-    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
         userId = tg.initDataUnsafe.user.id.toString();
     }
    
@@ -393,7 +402,7 @@ function handleReferral(refCode) {
         coinsCountElement.textContent = totalCoins;
         saveGameData();
        
-        if (tg && tg.showAlert) {
+        if (tg.showAlert) {
             tg.showAlert('Вы получили 10 монет за приглашение друга!');
         }
     } catch (e) {
@@ -406,14 +415,14 @@ function copyReferralLink() {
    
     try {
         navigator.clipboard.writeText(referralLinkInput.value).then(() => {
-            if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована!');
+            if (tg.showAlert) tg.showAlert('Ссылка скопирована!');
         }).catch(() => {
             document.execCommand('copy');
-            if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована!');
+            if (tg.showAlert) tg.showAlert('Ссылка скопирована!');
         });
     } catch (e) {
         document.execCommand('copy');
-        if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована!');
+        if (tg.showAlert) tg.showAlert('Ссылка скопирована!');
     }
 }
 // Инициализация таблицы рекордов
@@ -473,12 +482,12 @@ function shareGame() {
             title: 'RETRO PIXEL FLYER',
             text: shareText
         }).catch(console.error);
-    } else if (tg) {
+    } else if (tg.sendData) {
         tg.sendData(JSON.stringify({
             action: "share_score",
             score: totalScore
         }));
-        tg.showAlert('Результат отправлен в Telegram!');
+        if (tg.showAlert) tg.showAlert('Результат отправлен в Telegram!');
     } else {
         const textarea = document.createElement('textarea');
         textarea.value = shareText;
@@ -816,7 +825,6 @@ function openSettings() {
 function closeSettings() {
     settingsMenu.style.display = 'none';
     mainMenu.classList.add('active');
-    updateSnowflakes();
 }
 function toggleSound() {
     isSoundOn = !isSoundOn;
