@@ -726,9 +726,9 @@ function update(dt) {
     }
     // Скорости для фона и земли
     bgX -= 0.5;
-    if (bgX <= -canvas.width) bgX = 0;
+    if (bgX <= -bg.width) bgX += bg.width;
     fgX -= 2;
-    if (fgX <= -fg.width) fgX = 0; // Seamless tile reset
+    if (fgX <= -fg.width) fgX += fg.width; // Seamless tile reset
 }
 // Render с камерой
 function render() {
@@ -760,8 +760,8 @@ function render() {
 function drawTiled(img, x, y, height = img.height) {
     if (!img.complete) return;
     const tileWidth = img.width;
-    const startX = Math.floor(x % tileWidth);
-    let currentX = startX - tileWidth; // Start offscreen left
+    let currentX = x % tileWidth;
+    if (currentX > 0) currentX -= tileWidth;
     while (currentX < canvas.width) {
         ctx.drawImage(img, currentX, y, tileWidth, height);
         currentX += tileWidth;
