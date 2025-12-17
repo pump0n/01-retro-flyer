@@ -92,7 +92,7 @@ let lastTime = 0; // Для delta-time
 let initialized = false; // Флаг для предотвращения дублирования
 const fixedStep = 1 / 60; // Fixed timestep for updates (60Hz)
 let accumulator = 0; // Для fixed timestep
-const scale = 0.7; // Увеличен масштаб для лучшей видимости
+const scale = 0.6; // Увеличен масштаб для лучшей видимости
 // Камера для фокуса на птичке (вертикальный скроллинг)
 let cameraY = 0; // Смещение камеры по Y
 const cameraFollowSpeed = 0.3; // Увеличено для плавности
@@ -224,7 +224,7 @@ function resizeCanvas() {
     birdX = canvas.width / 4;
     birdY = canvas.height / 2;
     viewHeight = canvas.height * 0.6; // Адаптировано под canvas
-    gameHeight = canvas.height * 1.3; // Увеличенная высота игрового поля
+    gameHeight = canvas.height * 0.7; // Увеличенная высота игрового поля
     ctx.imageSmoothingEnabled = false;
     createSnowflakes();
     updateSnowflakes();
