@@ -1,3 +1,4 @@
+```javascript
 // Инициализация Telegram WebApp
 const tg = window.Telegram.WebApp || {}; // Fallback для не-Telegram
 if (tg.expand) {
@@ -92,7 +93,7 @@ let lastTime = 0; // Для delta-time
 let initialized = false; // Флаг для предотвращения дублирования
 const fixedStep = 1 / 60; // Fixed timestep for updates (60Hz)
 let accumulator = 0; // Для fixed timestep
-const scale = 0.7; // Уменьшен масштаб еще раз
+const scale = 0.9; // Увеличен масштаб для лучшей видимости
 // Камера для фокуса на птичке (вертикальный скроллинг)
 let cameraY = 0; // Смещение камеры по Y
 const cameraFollowSpeed = 0.3; // Увеличено для плавности
@@ -224,7 +225,7 @@ function resizeCanvas() {
     birdX = canvas.width / 4;
     birdY = canvas.height / 2;
     viewHeight = canvas.height * 0.6; // Адаптировано под canvas
-    gameHeight = canvas.height * 2; // Увеличенная высота игрового поля
+    gameHeight = canvas.height * 1.5; // Увеличенная высота игрового поля
     ctx.imageSmoothingEnabled = false;
     createSnowflakes();
     updateSnowflakes();
@@ -285,7 +286,7 @@ function initShop() {
             shopItem.innerHTML = `
                 <div class="shop-name">${item.name}</div>
                 <div class="shop-desc">${item.description}</div>
-                <button class="btn-small" data-id="${item.id}" ${currentBird === item.id ? 'disabled' : ''}>${currentBird === item.id ? 'ВЫБРАНО' : 'ВЫБРАТЬ'}</button>
+                <button class="btn-small" data-id="${item.id}" $$ {currentBird === item.id ? 'disabled' : ''}> $${currentBird === item.id ? 'ВЫБРАНО' : 'ВЫБРАТЬ'}</button>
             `;
         } else {
             shopItem.innerHTML = `
@@ -689,9 +690,9 @@ function update(dt) {
         const bottomY = gameHeight - fg.height; // From ground
         const bottomHeight = bottomY - gap - topHeight; // Lower height to fill to gap
         if (bottomHeight > 50) { // Только если bottomHeight достаточен
-            pipes.push({ x: canvas.width + 200, topHeight, bottomHeight, scored: false });
+            pipes.push({ x: canvas.width + 400, topHeight, bottomHeight, scored: false }); // Далее для видимости
             if (Math.random() > 0.5) {
-                coinsList.push({ x: canvas.width + 250, y: topHeight + gap / 2, collected: false });
+                coinsList.push({ x: canvas.width + 450, y: topHeight + gap / 2, collected: false });
             }
         }
     }
@@ -862,5 +863,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 initGame();
             }
         }, 3000);
+    } else {
+        initGame(); // Immediate init if loaded
     }
 });
