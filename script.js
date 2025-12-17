@@ -224,7 +224,7 @@ function resizeCanvas() {
     birdX = canvas.width / 4;
     birdY = canvas.height / 2;
     viewHeight = canvas.height * 0.6; // Адаптировано под canvas
-    gameHeight = canvas.height * 1.5; // Увеличенная высота игрового поля
+    gameHeight = canvas.height * 1.3; // Увеличенная высота игрового поля
     ctx.imageSmoothingEnabled = false;
     createSnowflakes();
     updateSnowflakes();
