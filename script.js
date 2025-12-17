@@ -76,7 +76,7 @@ let pipes = [];
 let coinsList = [];
 let birdX, birdY, velocity = 0;
 const gravity = 0.25; // Как в оригинале Flappy Bird
-const jumpPower = -6.5; // Как в оригинале
+const jumpPower = -5.5; // Уменьшено для меньшего прыжка
 const gap = 120;
 let frame = 0;
 let isSoundOn = true;
@@ -684,12 +684,14 @@ function update(dt) {
     frame++;
     // Генерация труб/монет заранее (за canvas.width / 2)
     if (frame % 100 === 0) {
-        const topHeight = Math.floor(Math.random() * 200) + 100; // Random top 100-300
+        const topHeight = Math.floor(Math.random() * (canvas.height - fg.height - gap - 100)) + 50; // Ограничение topHeight для проходимости
         const bottomY = canvas.height - fg.height; // From ground
         const bottomHeight = bottomY - gap - topHeight; // Lower height to fill to gap
-        pipes.push({ x: canvas.width + 200, topHeight, bottomHeight, scored: false });
-        if (Math.random() > 0.5) {
-            coinsList.push({ x: canvas.width + 250, y: topHeight + gap / 2, collected: false });
+        if (bottomHeight > 0) { // Только если bottomHeight положительный
+            pipes.push({ x: canvas.width + 200, topHeight, bottomHeight, scored: false });
+            if (Math.random() > 0.5) {
+                coinsList.push({ x: canvas.width + 250, y: topHeight + gap / 2, collected: false });
+            }
         }
     }
     // Движение труб
