@@ -48,7 +48,7 @@ const shareBtn = document.getElementById('share-btn');
 const bird = new Image();
 const bg = new Image();
 const fg = new Image();
-const pipe = new Image(); // Теперь одна труба вместо двух
+const pipe = new Image(); // Одна труба для верхней и нижней (перевернутой)
 const coin = new Image();
 // Звуковые файлы
 const jumpSound = new Audio('assets/jump.mp3');
@@ -57,11 +57,11 @@ const hitSound = new Audio('assets/hit.wav'); // Изменено на WAV
 const bgMusic = new Audio('assets/music.mp3');
 bgMusic.loop = true;
 // Загрузка ресурсов
-bird.src = 'assets/flappy_bird_bird.png'; // Замените на новогоднюю птичку, размер 34x24
+bird.src = 'assets/flappy_bird_bird.png'; // Новогодняя птичка, размер 45x45
 bg.src = 'assets/bg.png';
 fg.src = 'assets/fg.png';
-pipe.src = 'assets/pipeUp.png'; // Труба для верхней, будет переворачиваться для нижней
-coin.src = 'assets/coin.png'; // Новый размер 22x22
+pipe.src = 'assets/pipe.png'; // Единая труба
+coin.src = 'assets/coin.png'; // Размер 22x22
 // Игровые переменные
 let score = 0;
 let coinsCollected = 0;
@@ -75,7 +75,7 @@ let coinsList = [];
 let birdX, birdY, velocity = 0;
 const gravity = 0.25; // Как в оригинале Flappy Bird
 const jumpPower = -6.0; // Уменьшено для меньшего прыжка
-const gap = 120;
+const gap = 150; // Увеличен промежуток для новой птички 45x45
 let frame = 0;
 let isSoundOn = true;
 let isSnowOn = true; // По умолчанию снежинки включены
@@ -675,7 +675,7 @@ function update(dt) {
         velocity = 0;
     }
     // Камера следует за птичкой вертикально
-    const targetCameraY = birdY - (canvas.height / 2) + 12; // Центр на птичке (24/2)
+    const targetCameraY = birdY - (canvas.height / 2) + 22.5; // Центр на птичке (45/2)
     cameraY += (targetCameraY - cameraY) * cameraFollowSpeed;
     // Ограничение камеры
     cameraY = Math.max(0, cameraY); // Не выше верха
@@ -722,7 +722,7 @@ function update(dt) {
         if (c.x < -30) coinsList.splice(index, 1);
     });
     // Коллизия с землей
-    if (birdY + 24 > gameHeight - fg.height) {
+    if (birdY + 45 > gameHeight - fg.height) {
         endGame();
     }
     // Скорости для фона и земли
@@ -746,17 +746,17 @@ function render() {
     // Pipes
     pipes.forEach(pipe => {
         // Верхняя труба
-        ctx.drawImage(pipe, pipe.x, 0, pipe.width, pipe.topHeight);
+        ctx.drawImage(pipe, pipe.x, 0, pipe.width, pipe.topHeight); // Upper from top
         // Нижняя труба (перевернутая)
         ctx.save();
-        ctx.translate(pipe.x, gameHeight - fg.height - pipe.bottomHeight + pipe.bottomHeight); // Перемещаем к нижней позиции
-        ctx.scale(1, -1); // Переворачиваем по Y
+        ctx.translate(pipe.x + pipe.width, gameHeight - fg.height); // Перемещаем к нижней позиции
+        ctx.scale(-1, -1); // Переворачиваем по X и Y для нижней трубы
         ctx.drawImage(pipe, 0, 0, pipe.width, pipe.bottomHeight);
         ctx.restore();
     });
     // Coins
     coinsList.forEach(c => {
-        if (!c.collected) ctx.drawImage(coin, c.x, c.y, 22, 22); // Новый размер монетки
+        if (!c.collected) ctx.drawImage(coin, c.x, c.y, 22, 22); // Новый размер 22x22
     });
     // Ground
     drawTiled(fg, fgX, gameHeight - fg.height);
@@ -775,11 +775,11 @@ function drawTiled(img, x, y, height = img.height) {
     }
 }
 function drawBird() {
-    ctx.drawImage(bird, Math.floor(birdX), Math.floor(birdY), 34, 24); // Размер птички сохранен
+    ctx.drawImage(bird, Math.floor(birdX), Math.floor(birdY), 45, 45); // Новый размер 45x45
 }
 function collisionDetection(pipe) {
-    const birdRight = birdX + 34;
-    const birdBottom = birdY + 24;
+    const birdRight = birdX + 45;
+    const birdBottom = birdY + 45;
     // Верхняя труба (from top to topHeight)
     if (birdX < pipe.x + pipe.width && birdRight > pipe.x &&
         birdY < pipe.topHeight && birdBottom > 0) {
