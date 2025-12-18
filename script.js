@@ -180,13 +180,13 @@ function resourceLoaded() {
     loadedResources++;
     const progress = Math.floor((loadedResources / resources.length) * 100);
     document.getElementById('loading-progress').style.width = progress + '%';
-   
+  
     if (loadingStartTime === 0) {
         loadingStartTime = Date.now();
     }
-   
+  
     const elapsedTime = Date.now() - loadingStartTime;
-   
+  
     if (loadedResources >= resources.length && elapsedTime >= minLoadTime) {
         gameLoaded = true;
         setTimeout(initGame, 300);
@@ -240,24 +240,24 @@ function loadGameData() {
     isSoundOn = localStorage.getItem('retroPixelFlyerSound') !== 'false';
     isSnowOn = localStorage.getItem('retroPixelFlyerSnow') !== 'false';
     currentBird = localStorage.getItem('retroPixelFlyerCurrentBird') || 'default';
-   
+  
     // Загрузка достижений
     const savedAchievements = JSON.parse(localStorage.getItem('retroPixelFlyerAchievements') || '[]');
     achievements.forEach(ach => {
         ach.unlocked = savedAchievements.includes(ach.id);
     });
-   
+  
     // Загрузка покупок
     const savedItems = JSON.parse(localStorage.getItem('retroPixelFlyerShopItems') || '[]');
     shopItems.forEach(item => {
         item.owned = item.price === 0 || savedItems.includes(item.id);
     });
-   
+  
     // Рефералы
     const referralData = JSON.parse(localStorage.getItem('retroPixelFlyerReferrals') || '{"count": 0, "bonus": 0}');
     referralsCountElement.textContent = referralData.count;
     referralsBonusElement.textContent = referralData.bonus;
-   
+  
     coinsCountElement.textContent = totalCoins;
     bestScoreElement.textContent = `РЕКОРД: ${bestScore}`;
 }
@@ -268,10 +268,10 @@ function saveGameData() {
     localStorage.setItem('retroPixelFlyerSound', isSoundOn);
     localStorage.setItem('retroPixelFlyerSnow', isSnowOn);
     localStorage.setItem('retroPixelFlyerCurrentBird', currentBird);
-   
+  
     const unlockedAchievements = achievements.filter(ach => ach.unlocked).map(ach => ach.id);
     localStorage.setItem('retroPixelFlyerAchievements', JSON.stringify(unlockedAchievements));
-   
+  
     const ownedItems = shopItems.filter(item => item.owned).map(item => item.id);
     localStorage.setItem('retroPixelFlyerShopItems', JSON.stringify(ownedItems));
 }
@@ -297,7 +297,7 @@ function initShop() {
         }
         shopContent.appendChild(shopItem);
     });
-   
+  
     // Обработчики покупки/выбора
     shopContent.querySelectorAll('.btn-small').forEach(btn => {
         btn.addEventListener('click', e => {
@@ -367,11 +367,11 @@ function initReferral() {
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
         userId = tg.initDataUnsafe.user.id.toString();
     }
-   
+  
     const referralCode = encodeURIComponent(userId).substring(0, 12);
     const referralLink = `https://t.me/your_bot?start=${referralCode}`;
     referralLinkInput.value = referralLink;
-   
+  
     // Проверка реферального кода при запуске
     if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
         const refCode = tg.initDataUnsafe.start_param;
@@ -383,17 +383,17 @@ function handleReferral(refCode) {
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
         userId = tg.initDataUnsafe.user.id.toString();
     }
-   
+  
     try {
         const refUserId = decodeURIComponent(refCode);
         if (refUserId === userId || refUserId.includes(userId)) return;
-       
+      
         const processedRefs = JSON.parse(localStorage.getItem('retroPixelFlyerProcessedRefs') || '[]');
         if (processedRefs.includes(refCode)) return;
-       
+      
         processedRefs.push(refCode);
         localStorage.setItem('retroPixelFlyerProcessedRefs', JSON.stringify(processedRefs));
-       
+      
         const referralData = JSON.parse(localStorage.getItem('retroPixelFlyerReferrals') || '{"count": 0, "bonus": 0}');
         referralData.count++;
         referralData.bonus += 10;
@@ -403,7 +403,7 @@ function handleReferral(refCode) {
         referralsBonusElement.textContent = referralData.bonus;
         coinsCountElement.textContent = totalCoins;
         saveGameData();
-       
+      
         if (tg.showAlert) {
             tg.showAlert('Вы получили 10 монет за приглашение друга!');
         }
@@ -414,7 +414,7 @@ function handleReferral(refCode) {
 function copyReferralLink() {
     referralLinkInput.select();
     referralLinkInput.setSelectionRange(0, 99999);
-   
+  
     try {
         navigator.clipboard.writeText(referralLinkInput.value).then(() => {
             if (tg.showAlert) tg.showAlert('Ссылка скопирована!');
@@ -430,11 +430,11 @@ function copyReferralLink() {
 // Инициализация таблицы рекордов
 function initLeaderboard() {
     leaderboardContent.innerHTML = '';
-   
+  
     let leaderboard = JSON.parse(localStorage.getItem('retroPixelFlyerLeaderboard') || '[]');
-   
+  
     leaderboard.sort((a, b) => b.score - a.score);
-   
+  
     const uniqueLeaderboard = [];
     const seenScores = new Set();
     leaderboard.forEach(entry => {
@@ -443,15 +443,15 @@ function initLeaderboard() {
             uniqueLeaderboard.push(entry);
         }
     });
-   
+  
     leaderboard = uniqueLeaderboard.slice(0, 10);
     localStorage.setItem('retroPixelFlyerLeaderboard', JSON.stringify(leaderboard));
-   
+  
     if (leaderboard.length === 0) {
         leaderboardContent.innerHTML = '<div class="leaderboard-empty">Пока нет рекордов<br>Сыграй и установи свой рекорд!</div>';
         return;
     }
-   
+  
     leaderboard.forEach((entry, index) => {
         const leaderboardItem = document.createElement('div');
         leaderboardItem.className = 'leaderboard-item';
@@ -478,7 +478,7 @@ function addToLeaderboard(newScore) {
 function shareGame() {
     const totalScore = score + coinsCollected;
     const shareText = `🎮 Я набрал ${totalScore} очков в RETRO PIXEL FLYER!\nПопробуй побить мой рекорд!\nhttps://pump0n.github.io/01-retro-flyer/`;
-   
+  
     if (navigator.share) {
         navigator.share({
             title: 'RETRO PIXEL FLYER',
@@ -506,7 +506,7 @@ function initGame() {
     initialized = true;
     loadingScreen.style.opacity = '0';
     setTimeout(() => loadingScreen.style.display = 'none', 300);
-   
+  
     resizeCanvas();
     loadGameData();
     initShop();
@@ -518,7 +518,7 @@ function initGame() {
     styleMainMenuForNewYear(); // Новогоднее оформление
     createSnowflakes();
     updateSnowflakes();
-   
+  
     // Event listeners для меню с добавлением touchend для mobile
     const menuButtons = [startBtn, restartBtn, mainMenuBtn, shopBtn, shopBackBtn, achievementsBtn, achievementsBackBtn, referralBtn, referralBackBtn, leaderboardBtn, leaderboardBackBtn, settingsBtn, settingsBackBtn, soundToggle, snowToggle, copyLinkBtn, shareBtn];
     menuButtons.forEach(btn => {
@@ -601,11 +601,11 @@ function initGame() {
         leaderboardMenu.style.display = 'none';
         mainMenu.classList.add('active');
     }
-   
+  
     // Touch/click listeners на body для игры
     document.body.addEventListener('touchstart', handleInput, { passive: false });
     document.body.addEventListener('click', handleInput); // Fallback для desktop
-   
+  
     mainMenu.classList.add('active');
 }
 function handleInput(e) {
@@ -691,14 +691,14 @@ function update(dt) {
         if (bottomHeight > 50) { // Только если bottomHeight достаточен
             pipes.push({ x: canvas.width + 200, topHeight, bottomHeight, scored: false });
             if (Math.random() > 0.5) {
-                coinsList.push({ x: canvas.width + 250, y: topHeight + gap / 2, collected: false });
+                coinsList.push({ x: canvas.width + 213, y: topHeight + gap / 2, collected: false });
             }
         }
     }
     // Движение труб
     pipes.forEach((pipe, index) => {
         pipe.x -= 2;
-        if (pipe.x + pipeUp.width < birdX && !pipe.scored) {
+        if (pipe.x + 26 < birdX && !pipe.scored) {
             score++;
             pipe.scored = true;
             updateScore();
@@ -707,7 +707,7 @@ function update(dt) {
         if (collisionDetection(pipe)) {
             endGame();
         }
-        if (pipe.x < -pipeUp.width) pipes.splice(index, 1);
+        if (pipe.x < -26) pipes.splice(index, 1);
     });
     // Монеты
     coinsList.forEach((c, index) => {
@@ -747,8 +747,8 @@ function render() {
     }
     // Pipes
     pipes.forEach(pipe => {
-        ctx.drawImage(pipeUp, pipe.x, 0, pipeUp.width, pipe.topHeight); // Upper from top
-        ctx.drawImage(pipeBottom, pipe.x, gameHeight - fg.height - pipe.bottomHeight, pipeBottom.width, pipe.bottomHeight); // Lower from ground
+        ctx.drawImage(pipeUp, pipe.x, 0, 26, pipe.topHeight); // Upper from top
+        ctx.drawImage(pipeBottom, pipe.x, gameHeight - fg.height - pipe.bottomHeight, 26, pipe.bottomHeight); // Lower from ground
     });
     // Coins
     coinsList.forEach(c => {
@@ -772,20 +772,20 @@ function drawTiled(img, x, y, height = img.height) {
 }
 function drawBird() {
     if (bird.complete) {
-        ctx.drawImage(bird, Math.floor(birdX), Math.floor(birdY), 34, 24); // Sub-pixel fix
+        ctx.drawImage(bird, Math.floor(birdX), Math.floor(birdY), 45, 45); // Sub-pixel fix
     }
 }
 function collisionDetection(pipe) {
-    const birdRight = birdX + 34;
-    const birdBottom = birdY + 24;
+    const birdRight = birdX + 45;
+    const birdBottom = birdY + 45;
     // Верхняя труба (from top to topHeight)
-    if (birdX < pipe.x + pipeUp.width && birdRight > pipe.x &&
+    if (birdX < pipe.x + 26 && birdRight > pipe.x &&
         birdY < pipe.topHeight && birdBottom > 0) {
         return true;
     }
     // Нижняя труба (from ground - bottomHeight to ground)
     const bottomY = gameHeight - fg.height - pipe.bottomHeight;
-    if (birdX < pipe.x + pipeBottom.width && birdRight > pipe.x &&
+    if (birdX < pipe.x + 26 && birdRight > pipe.x &&
         birdY < gameHeight - fg.height && birdBottom > bottomY) {
         return true;
     }
@@ -839,7 +839,7 @@ function updateSoundToggle() {
     soundToggle.textContent = isSoundOn ? 'ВКЛ' : 'ВЫКЛ';
 }
 function toggleSnow() {
-    isSnowOn = !isSnowOn;
+    isSoundOn = !isSoundOn;
     updateSnowToggle();
     localStorage.setItem('retroPixelFlyerSnow', isSnowOn);
     updateSnowflakes();
@@ -854,7 +854,7 @@ document.addEventListener('DOMContentLoaded', () => {
     for (let i = 1; i < startScreens.length; i++) {
         startScreens[i].remove();
     }
-   
+  
     if (!gameLoaded) {
         setTimeout(() => {
             if (!gameLoaded) {
@@ -866,4 +866,3 @@ document.addEventListener('DOMContentLoaded', () => {
         initGame(); // Immediate init if loaded
     }
 });
-
