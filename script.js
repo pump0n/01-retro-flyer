@@ -724,7 +724,7 @@ function update(dt) {
         if (c.x < -30) coinsList.splice(index, 1);
     });
     // Коллизия с землей
-    if (birdY + 24 > gameHeight - fg.height) {
+    if (birdY + 45 > gameHeight - fg.height) {
         endGame();
     }
     // Скорости для фона и земли
@@ -747,7 +747,7 @@ function render() {
     }
     // Pipes
     pipes.forEach(pipe => {
-        ctx.drawImage(pipeUp, pipe.x, 0, 26, pipe.topHeight); // Upper from top
+        ctx.drawImage(pipeUp, pipe.x, 0, 69, pipe.topHeight); // Upper from top
         ctx.drawImage(pipeBottom, pipe.x, gameHeight - fg.height - pipe.bottomHeight, 26, pipe.bottomHeight); // Lower from ground
     });
     // Coins
