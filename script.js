@@ -77,7 +77,7 @@ let coinsList = [];
 let birdX, birdY, velocity = 0;
 const gravity = 0.25; // Как в оригинале Flappy Bird
 const jumpPower = -6.0; // Уменьшено для меньшего прыжка
-const gap = 120;
+const gap = 125;
 let frame = 0;
 let isSoundOn = true;
 let isSnowOn = true; // По умолчанию снежинки включены
@@ -684,7 +684,7 @@ function update(dt) {
     cameraY = Math.min(cameraY, gameHeight - canvas.height); // Не ниже низа
     frame++;
     // Генерация труб/монет заранее (за canvas.width / 2)
-    if (frame % 130 === 0) {
+    if (frame % 140 === 0) {
         const topHeight = Math.floor(Math.random() * (gameHeight - fg.height - gap - 200)) + 100; // Ограничение topHeight для проходимости
         const bottomY = gameHeight - fg.height; // From ground
         const bottomHeight = bottomY - gap - topHeight; // Lower height to fill to gap
