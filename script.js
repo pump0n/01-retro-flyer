@@ -748,7 +748,7 @@ function render() {
     // Pipes
     pipes.forEach(pipe => {
         ctx.drawImage(pipeUp, pipe.x, 0, 69, pipe.topHeight); // Upper from top
-        ctx.drawImage(pipeBottom, pipe.x, gameHeight - fg.height - pipe.bottomHeight, 26, pipe.bottomHeight); // Lower from ground
+        ctx.drawImage(pipeBottom, pipe.x, gameHeight - fg.height - pipe.bottomHeight, 69, pipe.bottomHeight); // Lower from ground
     });
     // Coins
     coinsList.forEach(c => {
