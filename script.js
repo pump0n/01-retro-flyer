@@ -48,8 +48,7 @@ const shareBtn = document.getElementById('share-btn');
 const bird = new Image();
 const bg = new Image();
 const fg = new Image();
-const pipeUp = new Image();
-const pipeBottom = new Image();
+const pipe = new Image(); // Теперь одна труба вместо двух
 const coin = new Image();
 // Звуковые файлы
 const jumpSound = new Audio('assets/jump.mp3');
@@ -58,12 +57,11 @@ const hitSound = new Audio('assets/hit.wav'); // Изменено на WAV
 const bgMusic = new Audio('assets/music.mp3');
 bgMusic.loop = true;
 // Загрузка ресурсов
-bird.src = 'assets/flappy_bird_bird.png';
+bird.src = 'assets/flappy_bird_bird.png'; // Замените на новогоднюю птичку, размер 34x24
 bg.src = 'assets/bg.png';
 fg.src = 'assets/fg.png';
-pipeUp.src = 'assets/pipeUp.png';
-pipeBottom.src = 'assets/pipeBottom.png';
-coin.src = 'assets/coin.png';
+pipe.src = 'assets/pipeUp.png'; // Труба для верхней, будет переворачиваться для нижней
+coin.src = 'assets/coin.png'; // Новый размер 22x22
 // Игровые переменные
 let score = 0;
 let coinsCollected = 0;
@@ -75,7 +73,7 @@ let gameStarted = false;
 let pipes = [];
 let coinsList = [];
 let birdX, birdY, velocity = 0;
-let gravity = 0.25; // Как в оригинале Flappy Bird
+const gravity = 0.25; // Как в оригинале Flappy Bird
 const jumpPower = -6.0; // Уменьшено для меньшего прыжка
 const gap = 120;
 let frame = 0;
@@ -92,11 +90,7 @@ let lastTime = 0; // Для delta-time
 let initialized = false; // Флаг для предотвращения дублирования
 const fixedStep = 1 / 60; // Fixed timestep for updates (60Hz)
 let accumulator = 0; // Для fixed timestep
-const scale = 0.7; // Масштаб (можно временно установить на 1.0 для теста на Android, если белый экран)
-const isAndroid = /Android/i.test(navigator.userAgent);
-if (isAndroid) {
-    gravity = 0.2; // Уменьшаем гравитацию для лучшей производительности на Android
-}
+const scale = 0.7; // Увеличен масштаб для лучшей видимости
 // Камера для фокуса на птичке (вертикальный скроллинг)
 let cameraY = 0; // Смещение камеры по Y
 const cameraFollowSpeed = 0.3; // Увеличено для плавности
@@ -176,13 +170,12 @@ const shopItems = [
     { id: 'penguin', name: 'ПИНГВИН', price: 200, owned: false, description: 'Морозный пингвин' }
 ];
 // Проверка загрузки всех ресурсов
-const resources = [bird, bg, fg, pipeUp, pipeBottom, coin];
+const resources = [bird, bg, fg, pipe, coin];
 let loadedResources = 0;
 let loadingStartTime = 0;
 const minLoadTime = 1500;
 function resourceLoaded() {
     loadedResources++;
-    console.log('Resource loaded:', this.src); // Отладка для Android: проверка загрузки ассетов
     const progress = Math.floor((loadedResources / resources.length) * 100);
     document.getElementById('loading-progress').style.width = progress + '%';
   
@@ -211,28 +204,25 @@ let resizeTimeout;
 function resizeCanvas() {
     let width = window.innerWidth;
     let height = window.innerHeight;
-    if (tg.viewportHeight) {
-        height = tg.viewportHeight; // Для Telegram WebView на Android/iOS
-    }
-    // Для ПК: принудительно 9:16 aspect (portrait), центрирование как мобильный экран
+    // Для ПК: принудительно 9:16 aspect (portrait)
     if (width > height) { // Landscape (ПК)
         height = window.innerHeight;
-        width = height * (9 / 16); // 9:16 ratio для мобильного вида
-        canvas.style.margin = '0 auto'; // Центрировать прямоугольник
+        width = height * (9 / 16); // 9:16 ratio
+        canvas.style.margin = '0 auto'; // Центрировать
         canvas.style.display = 'block';
     } else {
         // Для мобильных: full screen
         width = window.innerWidth;
         height = window.innerHeight;
     }
-    canvas.width = width * scale; // Если белый экран на Android, попробуйте временно установить scale=1.0 (canvas.width = width;)
+    canvas.width = width * scale;
     canvas.height = height * scale;
     canvas.style.width = width + 'px';
     canvas.style.height = height + 'px';
     birdX = canvas.width / 4;
     birdY = canvas.height / 2;
     viewHeight = canvas.height * 0.6; // Адаптировано под canvas
-    gameHeight = canvas.height * 1.25; // Увеличенная высота игрового поля (компромисс для удобства)
+    gameHeight = canvas.height * 1.25; // Увеличенная высота игрового поля
     ctx.imageSmoothingEnabled = false;
     createSnowflakes();
     updateSnowflakes();
@@ -241,7 +231,6 @@ window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(resizeCanvas, 100);
 });
-tg.onEvent('viewportChanged', resizeCanvas); // Для динамических изменений в Telegram
 // Загрузка данных игры
 function loadGameData() {
     totalCoins = parseInt(localStorage.getItem('retroPixelFlyerCoins') || '0');
@@ -378,7 +367,7 @@ function initReferral() {
     }
   
     const referralCode = encodeURIComponent(userId).substring(0, 12);
-    const referralLink = `https://t.me/your_bot?start=${referralCode}`; // Замените your_bot на реальное имя бота
+    const referralLink = `https://t.me/your_bot?start=${referralCode}`;
     referralLinkInput.value = referralLink;
   
     // Проверка реферального кода при запуске
@@ -640,11 +629,9 @@ function startGame() {
     gameActive = true;
     resetGame();
     resizeCanvas(); // Принудительный resize для избежания white screen
-    setTimeout(() => { // Задержка для инициализации WebView на Android
-        lastTime = performance.now();
-        accumulator = 0;
-        requestAnimationFrame(gameLoop);
-    }, 100);
+    lastTime = performance.now();
+    accumulator = 0; // Reset timestep accumulator
+    requestAnimationFrame(gameLoop);
 }
 // Сброс игры
 function resetGame() {
@@ -696,7 +683,7 @@ function update(dt) {
     frame++;
     // Генерация труб/монет заранее (за canvas.width / 2)
     if (frame % 130 === 0) {
-        const topHeight = Math.floor(Math.random() * (gameHeight - fg.height - gap - 200)) + 100; // Сужен диапазон для меньших перепадов
+        const topHeight = Math.floor(Math.random() * (gameHeight - fg.height - gap - 200)) + 100; // Ограничение topHeight для проходимости
         const bottomY = gameHeight - fg.height; // From ground
         const bottomHeight = bottomY - gap - topHeight; // Lower height to fill to gap
         if (bottomHeight > 50) { // Только если bottomHeight достаточен
@@ -709,7 +696,7 @@ function update(dt) {
     // Движение труб
     pipes.forEach((pipe, index) => {
         pipe.x -= 2;
-        if (pipe.x + pipeUp.width < birdX && !pipe.scored) {
+        if (pipe.x + pipe.width < birdX && !pipe.scored) {
             score++;
             pipe.scored = true;
             updateScore();
@@ -718,7 +705,7 @@ function update(dt) {
         if (collisionDetection(pipe)) {
             endGame();
         }
-        if (pipe.x < -pipeUp.width) pipes.splice(index, 1);
+        if (pipe.x < -pipe.width) pipes.splice(index, 1);
     });
     // Монеты
     coinsList.forEach((c, index) => {
@@ -747,14 +734,10 @@ function update(dt) {
 // Render с камерой
 function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    console.log('Rendering frame, bg complete:', bg.complete); // Отладка для Android: проверка готовности ассетов
     ctx.save();
     ctx.translate(0, -cameraY); // Смещение камеры
-    if (bg.complete) {
-        drawTiled(bg, bgX, 0, gameHeight - fg.height); // Draw bg to connect to fg
-    } else {
-        console.log('BG not loaded'); // Если фон не загружен
-    }
+    // Background
+    drawTiled(bg, bgX, 0, gameHeight - fg.height); // Draw bg to connect to fg
     if (!gameStarted) {
         drawBird();
         ctx.restore();
@@ -762,15 +745,21 @@ function render() {
     }
     // Pipes
     pipes.forEach(pipe => {
-        if (pipeUp.complete) ctx.drawImage(pipeUp, pipe.x, 0, pipeUp.width, pipe.topHeight); // Upper from top
-        if (pipeBottom.complete) ctx.drawImage(pipeBottom, pipe.x, gameHeight - fg.height - pipe.bottomHeight, pipeBottom.width, pipe.bottomHeight); // Lower from ground
+        // Верхняя труба
+        ctx.drawImage(pipe, pipe.x, 0, pipe.width, pipe.topHeight);
+        // Нижняя труба (перевернутая)
+        ctx.save();
+        ctx.translate(pipe.x, gameHeight - fg.height - pipe.bottomHeight + pipe.bottomHeight); // Перемещаем к нижней позиции
+        ctx.scale(1, -1); // Переворачиваем по Y
+        ctx.drawImage(pipe, 0, 0, pipe.width, pipe.bottomHeight);
+        ctx.restore();
     });
     // Coins
     coinsList.forEach(c => {
-        if (!c.collected && coin.complete) ctx.drawImage(coin, c.x, c.y, 30, 30);
+        if (!c.collected) ctx.drawImage(coin, c.x, c.y, 22, 22); // Новый размер монетки
     });
     // Ground
-    if (fg.complete) drawTiled(fg, fgX, gameHeight - fg.height);
+    drawTiled(fg, fgX, gameHeight - fg.height);
     drawBird();
     ctx.restore();
 }
@@ -786,21 +775,19 @@ function drawTiled(img, x, y, height = img.height) {
     }
 }
 function drawBird() {
-    if (bird.complete) {
-        ctx.drawImage(bird, Math.floor(birdX), Math.floor(birdY), 34, 24); // Sub-pixel fix
-    }
+    ctx.drawImage(bird, Math.floor(birdX), Math.floor(birdY), 34, 24); // Размер птички сохранен
 }
 function collisionDetection(pipe) {
     const birdRight = birdX + 34;
     const birdBottom = birdY + 24;
     // Верхняя труба (from top to topHeight)
-    if (birdX < pipe.x + pipeUp.width && birdRight > pipe.x &&
+    if (birdX < pipe.x + pipe.width && birdRight > pipe.x &&
         birdY < pipe.topHeight && birdBottom > 0) {
         return true;
     }
     // Нижняя труба (from ground - bottomHeight to ground)
     const bottomY = gameHeight - fg.height - pipe.bottomHeight;
-    if (birdX < pipe.x + pipeBottom.width && birdRight > pipe.x &&
+    if (birdX < pipe.x + pipe.width && birdRight > pipe.x &&
         birdY < gameHeight - fg.height && birdBottom > bottomY) {
         return true;
     }
