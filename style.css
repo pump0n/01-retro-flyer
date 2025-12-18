@@ -3,7 +3,6 @@
     padding: 0;
     box-sizing: border-box;
 }
-
 body {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
     color: #fff;
@@ -21,7 +20,6 @@ body {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
 }
-
 #loading-screen {
     position: fixed;
     top: 0;
@@ -36,12 +34,10 @@ body {
     z-index: 1000;
     transition: opacity 0.3s;
 }
-
 .logo {
     text-align: center;
     margin-bottom: 30px;
 }
-
 .logo-text {
     font-size: 2.5em;
     color: #ff6b6b;
@@ -49,7 +45,6 @@ body {
     text-shadow: 0 0 10px rgba(255, 107, 107, 0.8), 0 0 20px rgba(255, 107, 107, 0.5);
     animation: glow 2s ease-in-out infinite alternate;
 }
-
 .logo-subtext {
     font-size: 2em;
     color: #4ecdc4;
@@ -57,7 +52,6 @@ body {
     text-shadow: 0 0 10px rgba(78, 205, 196, 0.8), 0 0 20px rgba(78, 205, 196, 0.5);
     animation: glow 2s ease-in-out infinite alternate;
 }
-
 @keyframes glow {
     from {
         text-shadow: 0 0 10px rgba(255, 107, 107, 0.8), 0 0 20px rgba(255, 107, 107, 0.5);
@@ -66,7 +60,6 @@ body {
         text-shadow: 0 0 20px rgba(255, 107, 107, 1), 0 0 30px rgba(255, 107, 107, 0.8);
     }
 }
-
 .loading-bar {
     width: 250px;
     height: 15px;
@@ -77,7 +70,6 @@ body {
     margin: 20px 0;
     box-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
 }
-
 #loading-progress {
     width: 0%;
     height: 100%;
@@ -85,14 +77,12 @@ body {
     transition: width 0.3s;
     box-shadow: 0 0 10px rgba(78, 205, 196, 0.8);
 }
-
 .loading-text {
     font-size: 1em;
     color: #4ecdc4;
     letter-spacing: 1px;
     text-shadow: 0 0 5px rgba(78, 205, 196, 0.8);
 }
-
 #game-container {
     position: relative;
     width: 100%;
@@ -110,11 +100,8 @@ body {
     /* Исправление для iPhone */
     -webkit-overflow-scrolling: touch;
 }
-
 #game-canvas {
     display: block;
-    width: 100%;
-    height: 100%;
     position: absolute;
     top: 0;
     left: 0;
@@ -128,10 +115,9 @@ body {
     pointer-events: none; // Только для рендера, касания на body
     max-width: 100%;
     max-height: 100vh;
-    aspect-ratio: 9 / 16; /* Для ПК: фиксированный ratio 9:16 */
-    margin: 0 auto;
+    aspect-ratio: 9 / 16; /* Фиксированный формат мобильного экрана на ПК */
+    margin: 0 auto; /* Центрирование на ПК */
 }
-
 .status-bar {
     position: fixed;
     top: 10px;
@@ -145,12 +131,10 @@ body {
     gap: 15px;
     flex-wrap: wrap;
 }
-
 .coins-display {
     color: #ffd700;
     text-shadow: 0 0 5px rgba(255, 215, 0, 0.8);
 }
-
 .main-menu, .game-over-menu, .shop-menu, .achievements-menu, .referral-menu, .leaderboard-menu, .settings-menu {
     position: fixed;
     top: 0;
@@ -165,11 +149,9 @@ body {
     backdrop-filter: blur(5px);
     pointer-events: auto;
 }
-
 .main-menu.active {
     display: flex;
 }
-
 .menu {
     display: flex;
     flex-direction: column;
@@ -183,7 +165,6 @@ body {
     box-shadow: 0 0 20px rgba(78, 205, 196, 0.5);
     z-index: 2; /* Над снежинками */
 }
-
 .menu-title {
     font-size: 24px;
     color: #ff6b6b;
@@ -191,7 +172,6 @@ body {
     margin-bottom: 10px;
     text-shadow: 0 0 5px rgba(255, 107, 107, 0.8);
 }
-
 .menu-subtitle {
     font-size: 14px;
     color: #4ecdc4;
@@ -200,7 +180,6 @@ body {
     text-align: center;
     line-height: 1.5;
 }
-
 .btn {
     background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
     border: none;
@@ -217,40 +196,31 @@ body {
     border-radius: 0;
     pointer-events: auto;
 }
-
 .btn:hover {
     box-shadow: 0 0 15px rgba(255, 107, 107, 0.8);
     transform: scale(1.05);
 }
-
 .btn-shop {
     background: linear-gradient(135deg, #ffd700 0%, #ffcc00 100%);
 }
-
 .btn-achievements {
     background: linear-gradient(135deg, #90ee90 0%, #32cd32 100%);
 }
-
 .btn-referral {
     background: linear-gradient(135deg, #87cefa 0%, #00bfff 100%);
 }
-
 .btn-leaderboard {
     background: linear-gradient(135deg, #ba55d3 0%, #9370db 100%);
 }
-
 .btn-settings {
     background: linear-gradient(135deg, #a9a9a9 0%, #808080 100%);
 }
-
 .btn-share {
     background: linear-gradient(135deg, #20b2aa 0%, #008080 100%);
 }
-
 .game-over-menu {
     display: none;
 }
-
 .game-over {
     background: rgba(26, 26, 46, 0.8);
     border: 3px solid #ff6b6b;
@@ -260,21 +230,18 @@ body {
     width: 90%;
     box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
 }
-
 .score-display {
     font-size: 20px;
     color: #4ecdc4;
     margin: 10px 0;
     text-shadow: 0 0 5px rgba(78, 205, 196, 0.8);
 }
-
 .coins-earned {
     font-size: 16px;
     color: #ffd700;
     margin-bottom: 20px;
     text-shadow: 0 0 5px rgba(255, 215, 0, 0.8);
 }
-
 .start-screen {
     position: fixed;
     top: 0;
@@ -293,21 +260,17 @@ body {
     pointer-events: none; // Не блокировать клики под ним
     text-align: center;
 }
-
 .start-text {
     font-size: 24px;
     margin-bottom: 10px;
 }
-
 .start-subtext {
     font-size: 16px;
     margin-top: 20px; /* Увеличено для избежания наложения */
 }
-
 .shop-menu, .achievements-menu, .leaderboard-menu, .referral-menu {
     display: none;
 }
-
 .shop-content, .achievements-content, .leaderboard-content {
     width: 100%;
     max-height: 400px;
@@ -315,7 +278,6 @@ body {
     margin-bottom: 20px;
     -webkit-overflow-scrolling: touch;
 }
-
 .shop-item {
     background: rgba(78, 205, 196, 0.1);
     border: 2px solid #4ecdc4;
@@ -326,14 +288,12 @@ body {
     align-items: center;
     box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
 }
-
 .shop-name {
     font-size: 14px;
     color: #ff6b6b;
     margin-bottom: 5px;
     text-shadow: 0 0 5px rgba(255, 107, 107, 0.8);
 }
-
 .shop-desc {
     font-size: 10px;
     color: #fff;
@@ -341,14 +301,12 @@ body {
     margin-bottom: 10px;
     text-align: center;
 }
-
 .shop-price {
     font-size: 12px;
     color: #ffd700;
     margin-bottom: 10px;
     text-shadow: 0 0 5px rgba(255, 215, 0, 0.8);
 }
-
 .achievement-item {
     background: rgba(78, 205, 196, 0.1);
     border: 2px solid #4ecdc4;
@@ -360,21 +318,18 @@ body {
     position: relative;
     text-align: left;
 }
-
 .achievement-name {
     font-size: 12px;
     color: #ff6b6b;
     margin-bottom: 5px;
     text-shadow: 0 0 5px rgba(255, 107, 107, 0.8);
 }
-
 .achievement-desc {
     font-size: 8px;
     color: #fff;
     opacity: 0.8;
     line-height: 1.4;
 }
-
 .achievement-badge {
     font-size: 8px;
     color: #ffd700;
@@ -383,20 +338,17 @@ body {
     top: 5px;
     right: 5px;
 }
-
 .referral-content {
     width: 100%;
     max-width: 350px;
     margin-bottom: 20px;
 }
-
 .referral-info {
     background: rgba(78, 205, 196, 0.1);
     border: 2px solid #4ecdc4;
     padding: 20px;
     box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
 }
-
 .referral-info p {
     font-size: 10px;
     color: #4ecdc4;
@@ -404,13 +356,11 @@ body {
     line-height: 1.6;
     text-shadow: 0 0 5px rgba(78, 205, 196, 0.8);
 }
-
 .referral-link {
     display: flex;
     gap: 10px;
     margin-bottom: 15px;
 }
-
 .referral-link input {
     flex: 1;
     background: rgba(26, 26, 46, 0.8);
@@ -421,7 +371,6 @@ body {
     font-size: 8px;
     border-radius: 0;
 }
-
 .referral-stats {
     display: flex;
     flex-direction: column;
@@ -429,12 +378,10 @@ body {
     font-size: 10px;
     color: #fff;
 }
-
 .referral-stats div {
     display: flex;
     justify-content: space-between;
 }
-
 .leaderboard-item {
     background: rgba(78, 205, 196, 0.1);
     border: 2px solid #4ecdc4;
@@ -445,14 +392,12 @@ body {
     align-items: center;
     box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
 }
-
 .leaderboard-rank {
     font-size: 14px;
     color: #ffd700;
     text-shadow: 0 0 5px rgba(255, 215, 0, 0.8);
     min-width: 40px;
 }
-
 .leaderboard-score {
     font-size: 16px;
     color: #4ecdc4;
@@ -460,7 +405,6 @@ body {
     flex: 1;
     text-align: center;
 }
-
 .leaderboard-date {
     font-size: 8px;
     color: #fff;
@@ -468,7 +412,6 @@ body {
     min-width: 80px;
     text-align: right;
 }
-
 .leaderboard-empty {
     text-align: center;
     color: #4ecdc4;
@@ -476,7 +419,6 @@ body {
     padding: 40px;
     text-shadow: 0 0 5px rgba(78, 205, 196, 0.8);
 }
-
 .settings-menu {
     position: fixed;
     top: 0;
@@ -490,13 +432,11 @@ body {
     z-index: 30;
     backdrop-filter: blur(5px);
 }
-
 .settings-content {
     width: 100%;
     max-width: 350px;
     margin-bottom: 20px;
 }
-
 .setting-item {
     display: flex;
     justify-content: space-between;
@@ -509,7 +449,6 @@ body {
     color: #fff;
     box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
 }
-
 .btn-small {
     background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
     border: none;
@@ -523,17 +462,14 @@ body {
     box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
     transition: all 0.3s;
 }
-
 .btn-small:hover {
     box-shadow: 0 0 15px rgba(255, 107, 107, 0.8);
     transform: scale(1.05);
 }
-
 /* Удаление стилей audio-btn, так как удален */
 .audio-control {
     display: none;
 }
-
 /* Адаптивность */
 @media (max-width: 480px) {
     .logo-text { font-size: 2em; }
@@ -550,28 +486,25 @@ body {
         max-height: 350px;
     }
 }
-
 /* Специальные стили для iOS */
 @supports (-webkit-touch-callout: none) {
     body {
         height: -webkit-fill-available;
     }
-    
+   
     #game-container {
         height: -webkit-fill-available;
     }
-    
+   
     #game-canvas {
         height: -webkit-fill-available;
     }
 }
-
 /* Предотвращение зума на двойной тап для iOS */
 * {
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
 }
-
 /* Исправление для iPhone X и новее (безопасные зоны) */
 @supports (padding: max(0px)) {
     body {
@@ -581,33 +514,28 @@ body {
         padding-bottom: env(safe-area-inset-bottom);
     }
 }
-
 /* Скроллбар */
 .shop-content::-webkit-scrollbar,
 .achievements-content::-webkit-scrollbar,
 .leaderboard-content::-webkit-scrollbar {
     width: 8px;
 }
-
 .shop-content::-webkit-scrollbar-track,
 .achievements-content::-webkit-scrollbar-track,
 .leaderboard-content::-webkit-scrollbar-track {
     background: rgba(26, 26, 46, 0.5);
 }
-
 .shop-content::-webkit-scrollbar-thumb,
 .achievements-content::-webkit-scrollbar-thumb,
 .leaderboard-content::-webkit-scrollbar-thumb {
     background: #4ecdc4;
     border-radius: 0;
 }
-
 .shop-content::-webkit-scrollbar-thumb:hover,
 .achievements-content::-webkit-scrollbar-thumb:hover,
 .leaderboard-content::-webkit-scrollbar-thumb:hover {
     background: #ff6b6b;
 }
-
 /* Новые стили для снежинок и кнопки */
 #snow-toggle {
     background-color: #007bff; /* Синий, под новогоднюю тему */
@@ -617,11 +545,9 @@ body {
     border-radius: 5px;
     cursor: pointer;
 }
-
 #snow-toggle:hover {
     background-color: #0056b3;
 }
-
 #snow-canvas {
     position: absolute;
     top: 0;
@@ -631,19 +557,16 @@ body {
     pointer-events: none; /* Чтобы не мешал кликам */
     z-index: 1; /* Над фоном, но под кнопками меню */
 }
-
 /* Новогодние стили для главного меню */
 .main-menu {
     background: linear-gradient(to bottom, #0b3d91, #ffffff) !important; /* !important для перезаписи JS */
     color: #ff0000;
 }
-
 .main-menu h1 {
     font-size: 2em;
     text-align: center;
     margin-bottom: 20px;
 }
-
 /* Стили для toast уведомлений */
 #toast {
     position: fixed;
