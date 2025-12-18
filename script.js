@@ -48,7 +48,8 @@ const shareBtn = document.getElementById('share-btn');
 const bird = new Image();
 const bg = new Image();
 const fg = new Image();
-const pipe = new Image(); // Одна труба для верхней и нижней (перевернутой)
+const pipeUp = new Image();
+const pipeBottom = new Image();
 const coin = new Image();
 // Звуковые файлы
 const jumpSound = new Audio('assets/jump.mp3');
@@ -57,11 +58,12 @@ const hitSound = new Audio('assets/hit.wav'); // Изменено на WAV
 const bgMusic = new Audio('assets/music.mp3');
 bgMusic.loop = true;
 // Загрузка ресурсов
-bird.src = 'assets/flappy_bird_bird.png'; // Новогодняя птичка 45x45
+bird.src = 'assets/flappy_bird_bird.png';
 bg.src = 'assets/bg.png';
 fg.src = 'assets/fg.png';
-pipe.src = 'assets/pipeUp.png'; // Единая труба (для верхней, перевернем для нижней)
-coin.src = 'assets/coin.png'; // 22x22
+pipeUp.src = 'assets/pipeUp.png';
+pipeBottom.src = 'assets/pipeBottom.png';
+coin.src = 'assets/coin.png';
 // Игровые переменные
 let score = 0;
 let coinsCollected = 0;
@@ -75,7 +77,7 @@ let coinsList = [];
 let birdX, birdY, velocity = 0;
 const gravity = 0.25; // Как в оригинале Flappy Bird
 const jumpPower = -6.0; // Уменьшено для меньшего прыжка
-const gap = 150; // Увеличен для птички 45x45
+const gap = 120;
 let frame = 0;
 let isSoundOn = true;
 let isSnowOn = true; // По умолчанию снежинки включены
@@ -95,7 +97,7 @@ const scale = 0.7; // Увеличен масштаб для лучшей вид
 let cameraY = 0; // Смещение камеры по Y
 const cameraFollowSpeed = 0.3; // Увеличено для плавности
 let viewHeight = 0; // Будет инициализировано в resizeCanvas
-let gameHeight = 0; // Будет canvas.height * 1.25
+let gameHeight = 0; // Будет canvas.height * 1.5 or something
 // Снежинки для главного меню
 let snowflakes = [];
 const snowflakeCount = 50;
@@ -170,7 +172,7 @@ const shopItems = [
     { id: 'penguin', name: 'ПИНГВИН', price: 200, owned: false, description: 'Морозный пингвин' }
 ];
 // Проверка загрузки всех ресурсов
-const resources = [bird, bg, fg, pipe, coin];
+const resources = [bird, bg, fg, pipeUp, pipeBottom, coin];
 let loadedResources = 0;
 let loadingStartTime = 0;
 const minLoadTime = 1500;
@@ -178,13 +180,13 @@ function resourceLoaded() {
     loadedResources++;
     const progress = Math.floor((loadedResources / resources.length) * 100);
     document.getElementById('loading-progress').style.width = progress + '%';
-  
+   
     if (loadingStartTime === 0) {
         loadingStartTime = Date.now();
     }
-  
+   
     const elapsedTime = Date.now() - loadingStartTime;
-  
+   
     if (loadedResources >= resources.length && elapsedTime >= minLoadTime) {
         gameLoaded = true;
         setTimeout(initGame, 300);
@@ -238,24 +240,24 @@ function loadGameData() {
     isSoundOn = localStorage.getItem('retroPixelFlyerSound') !== 'false';
     isSnowOn = localStorage.getItem('retroPixelFlyerSnow') !== 'false';
     currentBird = localStorage.getItem('retroPixelFlyerCurrentBird') || 'default';
-  
+   
     // Загрузка достижений
     const savedAchievements = JSON.parse(localStorage.getItem('retroPixelFlyerAchievements') || '[]');
     achievements.forEach(ach => {
         ach.unlocked = savedAchievements.includes(ach.id);
     });
-  
+   
     // Загрузка покупок
     const savedItems = JSON.parse(localStorage.getItem('retroPixelFlyerShopItems') || '[]');
     shopItems.forEach(item => {
         item.owned = item.price === 0 || savedItems.includes(item.id);
     });
-  
+   
     // Рефералы
     const referralData = JSON.parse(localStorage.getItem('retroPixelFlyerReferrals') || '{"count": 0, "bonus": 0}');
     referralsCountElement.textContent = referralData.count;
     referralsBonusElement.textContent = referralData.bonus;
-  
+   
     coinsCountElement.textContent = totalCoins;
     bestScoreElement.textContent = `РЕКОРД: ${bestScore}`;
 }
@@ -266,10 +268,10 @@ function saveGameData() {
     localStorage.setItem('retroPixelFlyerSound', isSoundOn);
     localStorage.setItem('retroPixelFlyerSnow', isSnowOn);
     localStorage.setItem('retroPixelFlyerCurrentBird', currentBird);
-  
+   
     const unlockedAchievements = achievements.filter(ach => ach.unlocked).map(ach => ach.id);
     localStorage.setItem('retroPixelFlyerAchievements', JSON.stringify(unlockedAchievements));
-  
+   
     const ownedItems = shopItems.filter(item => item.owned).map(item => item.id);
     localStorage.setItem('retroPixelFlyerShopItems', JSON.stringify(ownedItems));
 }
@@ -295,7 +297,7 @@ function initShop() {
         }
         shopContent.appendChild(shopItem);
     });
-  
+   
     // Обработчики покупки/выбора
     shopContent.querySelectorAll('.btn-small').forEach(btn => {
         btn.addEventListener('click', e => {
@@ -365,11 +367,11 @@ function initReferral() {
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
         userId = tg.initDataUnsafe.user.id.toString();
     }
-  
+   
     const referralCode = encodeURIComponent(userId).substring(0, 12);
     const referralLink = `https://t.me/your_bot?start=${referralCode}`;
     referralLinkInput.value = referralLink;
-  
+   
     // Проверка реферального кода при запуске
     if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
         const refCode = tg.initDataUnsafe.start_param;
@@ -381,17 +383,17 @@ function handleReferral(refCode) {
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
         userId = tg.initDataUnsafe.user.id.toString();
     }
-  
+   
     try {
         const refUserId = decodeURIComponent(refCode);
         if (refUserId === userId || refUserId.includes(userId)) return;
-      
+       
         const processedRefs = JSON.parse(localStorage.getItem('retroPixelFlyerProcessedRefs') || '[]');
         if (processedRefs.includes(refCode)) return;
-      
+       
         processedRefs.push(refCode);
         localStorage.setItem('retroPixelFlyerProcessedRefs', JSON.stringify(processedRefs));
-      
+       
         const referralData = JSON.parse(localStorage.getItem('retroPixelFlyerReferrals') || '{"count": 0, "bonus": 0}');
         referralData.count++;
         referralData.bonus += 10;
@@ -401,7 +403,7 @@ function handleReferral(refCode) {
         referralsBonusElement.textContent = referralData.bonus;
         coinsCountElement.textContent = totalCoins;
         saveGameData();
-      
+       
         if (tg.showAlert) {
             tg.showAlert('Вы получили 10 монет за приглашение друга!');
         }
@@ -412,7 +414,7 @@ function handleReferral(refCode) {
 function copyReferralLink() {
     referralLinkInput.select();
     referralLinkInput.setSelectionRange(0, 99999);
-  
+   
     try {
         navigator.clipboard.writeText(referralLinkInput.value).then(() => {
             if (tg.showAlert) tg.showAlert('Ссылка скопирована!');
@@ -428,11 +430,11 @@ function copyReferralLink() {
 // Инициализация таблицы рекордов
 function initLeaderboard() {
     leaderboardContent.innerHTML = '';
-  
+   
     let leaderboard = JSON.parse(localStorage.getItem('retroPixelFlyerLeaderboard') || '[]');
-  
+   
     leaderboard.sort((a, b) => b.score - a.score);
-  
+   
     const uniqueLeaderboard = [];
     const seenScores = new Set();
     leaderboard.forEach(entry => {
@@ -441,15 +443,15 @@ function initLeaderboard() {
             uniqueLeaderboard.push(entry);
         }
     });
-  
+   
     leaderboard = uniqueLeaderboard.slice(0, 10);
     localStorage.setItem('retroPixelFlyerLeaderboard', JSON.stringify(leaderboard));
-  
+   
     if (leaderboard.length === 0) {
         leaderboardContent.innerHTML = '<div class="leaderboard-empty">Пока нет рекордов<br>Сыграй и установи свой рекорд!</div>';
         return;
     }
-  
+   
     leaderboard.forEach((entry, index) => {
         const leaderboardItem = document.createElement('div');
         leaderboardItem.className = 'leaderboard-item';
@@ -476,7 +478,7 @@ function addToLeaderboard(newScore) {
 function shareGame() {
     const totalScore = score + coinsCollected;
     const shareText = `🎮 Я набрал ${totalScore} очков в RETRO PIXEL FLYER!\nПопробуй побить мой рекорд!\nhttps://pump0n.github.io/01-retro-flyer/`;
-  
+   
     if (navigator.share) {
         navigator.share({
             title: 'RETRO PIXEL FLYER',
@@ -504,7 +506,7 @@ function initGame() {
     initialized = true;
     loadingScreen.style.opacity = '0';
     setTimeout(() => loadingScreen.style.display = 'none', 300);
-  
+   
     resizeCanvas();
     loadGameData();
     initShop();
@@ -516,7 +518,7 @@ function initGame() {
     styleMainMenuForNewYear(); // Новогоднее оформление
     createSnowflakes();
     updateSnowflakes();
-  
+   
     // Event listeners для меню с добавлением touchend для mobile
     const menuButtons = [startBtn, restartBtn, mainMenuBtn, shopBtn, shopBackBtn, achievementsBtn, achievementsBackBtn, referralBtn, referralBackBtn, leaderboardBtn, leaderboardBackBtn, settingsBtn, settingsBackBtn, soundToggle, snowToggle, copyLinkBtn, shareBtn];
     menuButtons.forEach(btn => {
@@ -599,11 +601,11 @@ function initGame() {
         leaderboardMenu.style.display = 'none';
         mainMenu.classList.add('active');
     }
-  
+   
     // Touch/click listeners на body для игры
     document.body.addEventListener('touchstart', handleInput, { passive: false });
     document.body.addEventListener('click', handleInput); // Fallback для desktop
-  
+   
     mainMenu.classList.add('active');
 }
 function handleInput(e) {
@@ -675,15 +677,15 @@ function update(dt) {
         velocity = 0;
     }
     // Камера следует за птичкой вертикально
-    const targetCameraY = birdY - (canvas.height / 2) + 22.5; // Центр на птичке (45/2)
+    const targetCameraY = birdY - (canvas.height / 2) + 12; // Центр на птичке (24/2)
     cameraY += (targetCameraY - cameraY) * cameraFollowSpeed;
     // Ограничение камеры
     cameraY = Math.max(0, cameraY); // Не выше верха
     cameraY = Math.min(cameraY, gameHeight - canvas.height); // Не ниже низа
     frame++;
     // Генерация труб/монет заранее (за canvas.width / 2)
-    if (frame % 100 === 0) {
-        const topHeight = Math.floor(Math.random() * (gameHeight - fg.height - gap - 100)) + 50; // Ограничение topHeight для проходимости
+    if (frame % 130 === 0) {
+        const topHeight = Math.floor(Math.random() * (gameHeight - fg.height - gap - 200)) + 100; // Ограничение topHeight для проходимости
         const bottomY = gameHeight - fg.height; // From ground
         const bottomHeight = bottomY - gap - topHeight; // Lower height to fill to gap
         if (bottomHeight > 50) { // Только если bottomHeight достаточен
@@ -696,7 +698,7 @@ function update(dt) {
     // Движение труб
     pipes.forEach((pipe, index) => {
         pipe.x -= 2;
-        if (pipe.x + pipe.width < birdX && !pipe.scored) {
+        if (pipe.x + pipeUp.width < birdX && !pipe.scored) {
             score++;
             pipe.scored = true;
             updateScore();
@@ -705,7 +707,7 @@ function update(dt) {
         if (collisionDetection(pipe)) {
             endGame();
         }
-        if (pipe.x < -pipe.width) pipes.splice(index, 1);
+        if (pipe.x < -pipeUp.width) pipes.splice(index, 1);
     });
     // Монеты
     coinsList.forEach((c, index) => {
@@ -722,7 +724,7 @@ function update(dt) {
         if (c.x < -30) coinsList.splice(index, 1);
     });
     // Коллизия с землей
-    if (birdY + 45 > gameHeight - fg.height) {
+    if (birdY + 24 > gameHeight - fg.height) {
         endGame();
     }
     // Скорости для фона и земли
@@ -745,18 +747,12 @@ function render() {
     }
     // Pipes
     pipes.forEach(pipe => {
-        ctx.drawImage(pipe, pipe.x, 0, pipe.width, pipe.topHeight); // Верхняя труба
-        // Нижняя труба (перевернутая)
-        const bottomY = gameHeight - fg.height - pipe.bottomHeight;
-        ctx.save();
-        ctx.translate(pipe.x, bottomY + pipe.bottomHeight);
-        ctx.scale(1, -1);
-        ctx.drawImage(pipe, 0, 0, pipe.width, pipe.bottomHeight);
-        ctx.restore();
+        ctx.drawImage(pipeUp, pipe.x, 0, pipeUp.width, pipe.topHeight); // Upper from top
+        ctx.drawImage(pipeBottom, pipe.x, gameHeight - fg.height - pipe.bottomHeight, pipeBottom.width, pipe.bottomHeight); // Lower from ground
     });
     // Coins
     coinsList.forEach(c => {
-        if (!c.collected && coin.complete) ctx.drawImage(coin, c.x, c.y, 22, 22); // Новый размер монетки
+        if (!c.collected && coin.complete) ctx.drawImage(coin, c.x, c.y, 30, 30);
     });
     // Ground
     drawTiled(fg, fgX, gameHeight - fg.height);
@@ -776,20 +772,20 @@ function drawTiled(img, x, y, height = img.height) {
 }
 function drawBird() {
     if (bird.complete) {
-        ctx.drawImage(bird, Math.floor(birdX), Math.floor(birdY), 45, 45); // Новый размер птички
+        ctx.drawImage(bird, Math.floor(birdX), Math.floor(birdY), 34, 24); // Sub-pixel fix
     }
 }
 function collisionDetection(pipe) {
-    const birdRight = birdX + 45;
-    const birdBottom = birdY + 45;
+    const birdRight = birdX + 34;
+    const birdBottom = birdY + 24;
     // Верхняя труба (from top to topHeight)
-    if (birdX < pipe.x + pipe.width && birdRight > pipe.x &&
+    if (birdX < pipe.x + pipeUp.width && birdRight > pipe.x &&
         birdY < pipe.topHeight && birdBottom > 0) {
         return true;
     }
     // Нижняя труба (from ground - bottomHeight to ground)
     const bottomY = gameHeight - fg.height - pipe.bottomHeight;
-    if (birdX < pipe.x + pipe.width && birdRight > pipe.x &&
+    if (birdX < pipe.x + pipeBottom.width && birdRight > pipe.x &&
         birdY < gameHeight - fg.height && birdBottom > bottomY) {
         return true;
     }
@@ -858,7 +854,7 @@ document.addEventListener('DOMContentLoaded', () => {
     for (let i = 1; i < startScreens.length; i++) {
         startScreens[i].remove();
     }
-  
+   
     if (!gameLoaded) {
         setTimeout(() => {
             if (!gameLoaded) {
@@ -870,3 +866,4 @@ document.addEventListener('DOMContentLoaded', () => {
         initGame(); // Immediate init if loaded
     }
 });
+
