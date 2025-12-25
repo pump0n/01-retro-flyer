@@ -2,7 +2,8 @@ body {
     margin: 0;
     padding: 0;
     overflow: hidden;
-    background: #000; /* Запасной фон, если канвас не загрузится */
+    background: #000; /* Запасной фон */
+    touch-action: none; /* Отключаем жесты браузера */
 }
 
 canvas {
