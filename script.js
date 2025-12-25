@@ -26,15 +26,15 @@ const dieSound = new Audio('assets/hit.wav');
 
 // Игровые переменные
 let birdX, birdY, velocity = 0;
-const gravity = 0.125; // Мягкая гравитация
+const gravity = 0.135; // Мягкая гравитация
 const lift = -4.5; // Сила прыжка
-const pipeGap = 120; // Зазор между трубами
+const pipeGap = 135; // Зазор между трубами
 const birdWidth = 34;
-const birdHeight = 24;
+const birdHeight = 34;
 const pipeWidth = 52;
 const groundHeight = 112;
 const pipeSpeed = 1.5; // Скорость труб
-const pipeSpacing = 200; // Увеличено для большего расстояния
+const pipeSpacing = 300; // Увеличено для большего расстояния
 let pipes = [];
 let score = 0;
 let bestScore = parseInt(localStorage.getItem('flappyBestScore') || '0');
