@@ -1,868 +1,294 @@
-// Инициализация Telegram WebApp
-const tg = window.Telegram.WebApp || {}; // Fallback для не-Telegram
-if (tg.expand) {
-    tg.expand();
-    tg.ready();
-}
-// DOM элементы
-const canvas = document.getElementById('game-canvas');
+// Flappy Bird Game
+// Adapted to original Flappy Bird physics, sizes, movement, and smoothness
+// Runs in any browser without device-specific adaptations
+
+const canvas = document.createElement('canvas');
 const ctx = canvas.getContext('2d');
-const mainMenu = document.querySelector('.main-menu');
-const gameOverMenu = document.querySelector('.game-over-menu');
-const startScreen = document.querySelector('.start-screen');
-const loadingScreen = document.getElementById('loading-screen');
-const shopMenu = document.querySelector('.shop-menu');
-const achievementsMenu = document.querySelector('.achievements-menu');
-const referralMenu = document.querySelector('.referral-menu');
-const leaderboardMenu = document.querySelector('.leaderboard-menu');
-const settingsMenu = document.querySelector('.settings-menu');
-const startBtn = document.getElementById('start-btn');
-const restartBtn = document.getElementById('restart-btn');
-const mainMenuBtn = document.getElementById('main-menu-btn');
-const shopBtn = document.getElementById('shop-btn');
-const shopBackBtn = document.getElementById('shop-back-btn');
-const achievementsBtn = document.getElementById('achievements-btn');
-const achievementsBackBtn = document.getElementById('achievements-back-btn');
-const referralBtn = document.getElementById('referral-btn');
-const referralBackBtn = document.getElementById('referral-back-btn');
-const leaderboardBtn = document.getElementById('leaderboard-btn');
-const leaderboardBackBtn = document.getElementById('leaderboard-back-btn');
-const settingsBtn = document.getElementById('settings-btn');
-const settingsBackBtn = document.getElementById('settings-back-btn');
-const soundToggle = document.getElementById('sound-toggle');
-const snowToggle = document.getElementById('snow-toggle'); // Новая кнопка для снежинок
-const finalScoreElement = document.getElementById('final-score');
-const coinsEarnedElement = document.getElementById('coins-earned');
-const scoreElement = document.querySelector('.score');
-const bestScoreElement = document.querySelector('.best-score');
-const coinsCountElement = document.getElementById('coins-count');
-const shopContent = document.getElementById('shop-content');
-const achievementsContent = document.getElementById('achievements-content');
-const leaderboardContent = document.getElementById('leaderboard-content');
-const referralLinkInput = document.getElementById('referral-link-input');
-const copyLinkBtn = document.getElementById('copy-link-btn');
-const referralsCountElement = document.getElementById('referrals-count');
-const referralsBonusElement = document.getElementById('referrals-bonus');
-const shareBtn = document.getElementById('share-btn');
-// Графические ресурсы
-const bird = new Image();
-const bg = new Image();
-const fg = new Image();
-const pipeUp = new Image();
-const pipeBottom = new Image();
-const coin = new Image();
-// Звуковые файлы
-const jumpSound = new Audio('assets/jump.mp3');
-const coinSound = new Audio('assets/coin.mp3');
-const hitSound = new Audio('assets/hit.wav'); // Изменено на WAV
+document.body.appendChild(canvas);
+
+// Images
+const birdImg = new Image();
+const bgImg = new Image();
+const fgImg = new Image();
+const pipeNorthImg = new Image();
+const pipeSouthImg = new Image();
+
+birdImg.src = 'assets/flappy_bird_bird.png'; // Assume original bird asset
+bgImg.src = 'assets/bg.png';
+fgImg.src = 'assets/fg.png';
+pipeNorthImg.src = 'assets/pipeUp.png'; // North (top) pipe
+pipeSouthImg.src = 'assets/pipeBottom.png'; // South (bottom) pipe
+
+// Audio (optional, can be removed if not needed)
+const flapSound = new Audio('assets/jump.mp3');
+const scoreSound = new Audio('assets/coin.mp3'); // Reused for score
+const dieSound = new Audio('assets/hit.wav');
 const bgMusic = new Audio('assets/music.mp3');
 bgMusic.loop = true;
-// Загрузка ресурсов
-bird.src = 'assets/flappy_bird_bird.png';
-bg.src = 'assets/bg.png';
-fg.src = 'assets/fg.png';
-pipeUp.src = 'assets/pipeUp.png';
-pipeBottom.src = 'assets/pipeBottom.png';
-coin.src = 'assets/coin.png';
-// Игровые переменные
-let score = 0;
-let coinsCollected = 0;
-let coinsEarned = 0;
-let totalCoins = 0;
-let bestScore = 0;
-let gameActive = false;
-let gameStarted = false;
-let pipes = [];
-let coinsList = [];
+
+// Game variables matching original Flappy Bird
 let birdX, birdY, velocity = 0;
-const gravity = 0.25; // Как в оригинале Flappy Bird
-const jumpPower = -6.0; // Уменьшено для меньшего прыжка
-const gap = 125;
-let frame = 0;
-let isSoundOn = true;
-let isSnowOn = true; // По умолчанию снежинки включены
+const gravity = 0.25; // Original gravity per frame
+const lift = -4.5; // Original jump strength (adjusted for feel)
+const pipeGap = 90; // Original gap size
+const birdWidth = 34; // Original bird size
+const birdHeight = 24;
+const pipeWidth = 52; // Original pipe width
+const groundHeight = 112; // Original ground height
+let pipes = [];
+let score = 0;
+let bestScore = parseInt(localStorage.getItem('flappyBestScore') || '0');
+let gameState = 'start'; // 'start', 'playing', 'over'
+let frameCount = 0;
 let bgX = 0;
 let fgX = 0;
-let gameLoaded = false;
-let animationFrame = null;
-let currentBird = 'default';
-let lastTouchTime = 0;
-let touchCooldown = 200; // Настроено для лучшей отзывчивости
-let lastTime = 0; // Для delta-time
-let initialized = false; // Флаг для предотвращения дублирования
-const fixedStep = 1 / 60; // Fixed timestep for updates (60Hz)
-let accumulator = 0; // Для fixed timestep
-const scale = 0.7; // Увеличен масштаб для лучшей видимости
-// Камера для фокуса на птичке (вертикальный скроллинг)
-let cameraY = 0; // Смещение камеры по Y
-const cameraFollowSpeed = 0.3; // Увеличено для плавности
-let viewHeight = 0; // Будет инициализировано в resizeCanvas
-let gameHeight = 0; // Будет canvas.height * 1.5 or something
-// Снежинки для главного меню
-let snowflakes = [];
-const snowflakeCount = 50;
-let snowAnimationFrame = null;
-function createSnowflakes() {
-    snowflakes = [];
-    for (let i = 0; i < snowflakeCount; i++) {
-        snowflakes.push({
-            x: Math.random() * mainMenu.clientWidth,
-            y: Math.random() * mainMenu.clientHeight,
-            speed: Math.random() * 2 + 1,
-            size: Math.random() * 4 + 2
-        });
-    }
-}
-function updateSnowflakes() {
-    if (!isSnowOn || !mainMenu.classList.contains('active')) {
-        if (snowAnimationFrame) cancelAnimationFrame(snowAnimationFrame);
-        const snowCanvas = document.getElementById('snow-canvas');
-        if (snowCanvas) snowCanvas.remove();
-        return;
-    }
-    let snowCanvas = document.getElementById('snow-canvas');
-    if (!snowCanvas) {
-        snowCanvas = document.createElement('canvas');
-        snowCanvas.id = 'snow-canvas';
-        snowCanvas.style.position = 'absolute';
-        snowCanvas.style.top = '0';
-        snowCanvas.style.left = '0';
-        snowCanvas.style.pointerEvents = 'none';
-        mainMenu.prepend(snowCanvas); // Добавляем в начало mainMenu
-    }
-    snowCanvas.width = mainMenu.clientWidth;
-    snowCanvas.height = mainMenu.clientHeight;
-    const snowCtx = snowCanvas.getContext('2d');
-    function animateSnow() {
-        snowCtx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
-        snowflakes.forEach(flake => {
-            flake.y += flake.speed;
-            if (flake.y > snowCanvas.height) flake.y = -flake.size;
-            snowCtx.beginPath();
-            snowCtx.arc(flake.x, flake.y, flake.size, 0, Math.PI * 2);
-            snowCtx.fillStyle = '#fff';
-            snowCtx.fill();
-        });
-        snowAnimationFrame = requestAnimationFrame(animateSnow);
-    }
-    animateSnow();
-}
-// Новогоднее оформление главного меню (добавляем стили через JS)
-function styleMainMenuForNewYear() {
-    mainMenu.style.background = 'linear-gradient(to bottom, #0b3d91, #ffffff)'; // Синий новогодний градиент
-    mainMenu.style.color = '#ff0000'; // Красный текст для праздника
-    const title = document.querySelector('.main-menu h1');
-    if (title) title.textContent = '🎄 RETRO PIXEL FLYER 🎅'; // Добавляем эмодзи
-}
-// Система достижений
-const achievements = [
-    { id: 'score_10', name: 'ПЕРВЫЕ ШАГИ', description: 'Набери 10 очков', score: 10, unlocked: false },
-    { id: 'score_25', name: 'НОВИЧОК', description: 'Набери 25 очков', score: 25, unlocked: false },
-    { id: 'score_50', name: 'ОПЫТНЫЙ', description: 'Набери 50 очков', score: 50, unlocked: false },
-    { id: 'score_100', name: 'МАСТЕР', description: 'Набери 100 очков', score: 100, unlocked: false },
-    { id: 'score_200', name: 'ПРОФЕССИОНАЛ', description: 'Набери 200 очков', score: 200, unlocked: false },
-    { id: 'score_500', name: 'ЛЕГЕНДА', description: 'Набери 500 очков', score: 500, unlocked: false }
-];
-// Магазин птичек
-const shopItems = [
-    { id: 'default', name: 'ДЕД МОРОЗ', price: 0, owned: true, description: 'Базовый персонаж' },
-    { id: 'snowman', name: 'СНЕГОВИК', price: 50, owned: false, description: 'Классический снеговик' },
-    { id: 'reindeer', name: 'ОЛЕНЬ', price: 100, owned: false, description: 'Быстрый олень' },
-    { id: 'elf', name: 'ЭЛЬФ', price: 150, owned: false, description: 'Волшебный эльф' },
-    { id: 'penguin', name: 'ПИНГВИН', price: 200, owned: false, description: 'Морозный пингвин' }
-];
-// Проверка загрузки всех ресурсов
-const resources = [bird, bg, fg, pipeUp, pipeBottom, coin];
-let loadedResources = 0;
-let loadingStartTime = 0;
-const minLoadTime = 1500;
-function resourceLoaded() {
-    loadedResources++;
-    const progress = Math.floor((loadedResources / resources.length) * 100);
-    document.getElementById('loading-progress').style.width = progress + '%';
-  
-    if (loadingStartTime === 0) {
-        loadingStartTime = Date.now();
-    }
-  
-    const elapsedTime = Date.now() - loadingStartTime;
-  
-    if (loadedResources >= resources.length && elapsedTime >= minLoadTime) {
-        gameLoaded = true;
-        setTimeout(initGame, 300);
-    } else if (loadedResources >= resources.length) {
-        setTimeout(() => {
-            gameLoaded = true;
-            initGame();
-        }, minLoadTime - elapsedTime);
-    }
-}
-resources.forEach(res => {
-    res.onload = resourceLoaded;
-    res.onerror = resourceLoaded;
-});
-// Resize canvas с учетом aspect ratio 9:16 для ПК
-let resizeTimeout;
+let lastTime = 0;
+
+// Fixed timestep for smooth physics (60 FPS)
+const fixedStep = 1 / 60;
+let accumulator = 0;
+
+// Resize canvas to fit window (responsive, maintains aspect for browsers)
 function resizeCanvas() {
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    // Для ПК: принудительно 9:16 aspect (portrait)
-    if (width > height) { // Landscape (ПК)
-        height = window.innerHeight;
-        width = height * (9 / 16); // 9:16 ratio
-        canvas.style.margin = '0 auto'; // Центрировать
-        canvas.style.display = 'block';
-    } else {
-        // Для мобильных: full screen
-        width = window.innerWidth;
-        height = window.innerHeight;
-    }
-    canvas.width = width * scale;
-    canvas.height = height * scale;
-    canvas.style.width = width + 'px';
-    canvas.style.height = height + 'px';
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
     birdX = canvas.width / 4;
     birdY = canvas.height / 2;
-    viewHeight = canvas.height * 0.6; // Адаптировано под canvas
-    gameHeight = canvas.height * 1.25; // Увеличенная высота игрового поля
-    ctx.imageSmoothingEnabled = false;
-    createSnowflakes();
-    updateSnowflakes();
+    ctx.imageSmoothingEnabled = false; // Pixel art style
 }
-window.addEventListener('resize', () => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(resizeCanvas, 100);
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Load resources and init
+let resourcesLoaded = 0;
+const resources = [birdImg, bgImg, fgImg, pipeNorthImg, pipeSouthImg];
+resources.forEach(img => {
+    img.onload = () => {
+        resourcesLoaded++;
+        if (resourcesLoaded === resources.length) {
+            initGame();
+        }
+    };
 });
-// Загрузка данных игры
-function loadGameData() {
-    totalCoins = parseInt(localStorage.getItem('retroPixelFlyerCoins') || '0');
-    bestScore = parseInt(localStorage.getItem('retroPixelFlyerBestScore') || '0');
-    isSoundOn = localStorage.getItem('retroPixelFlyerSound') !== 'false';
-    isSnowOn = localStorage.getItem('retroPixelFlyerSnow') !== 'false';
-    currentBird = localStorage.getItem('retroPixelFlyerCurrentBird') || 'default';
-  
-    // Загрузка достижений
-    const savedAchievements = JSON.parse(localStorage.getItem('retroPixelFlyerAchievements') || '[]');
-    achievements.forEach(ach => {
-        ach.unlocked = savedAchievements.includes(ach.id);
-    });
-  
-    // Загрузка покупок
-    const savedItems = JSON.parse(localStorage.getItem('retroPixelFlyerShopItems') || '[]');
-    shopItems.forEach(item => {
-        item.owned = item.price === 0 || savedItems.includes(item.id);
-    });
-  
-    // Рефералы
-    const referralData = JSON.parse(localStorage.getItem('retroPixelFlyerReferrals') || '{"count": 0, "bonus": 0}');
-    referralsCountElement.textContent = referralData.count;
-    referralsBonusElement.textContent = referralData.bonus;
-  
-    coinsCountElement.textContent = totalCoins;
-    bestScoreElement.textContent = `РЕКОРД: ${bestScore}`;
-}
-// Сохранение данных
-function saveGameData() {
-    localStorage.setItem('retroPixelFlyerCoins', totalCoins);
-    localStorage.setItem('retroPixelFlyerBestScore', bestScore);
-    localStorage.setItem('retroPixelFlyerSound', isSoundOn);
-    localStorage.setItem('retroPixelFlyerSnow', isSnowOn);
-    localStorage.setItem('retroPixelFlyerCurrentBird', currentBird);
-  
-    const unlockedAchievements = achievements.filter(ach => ach.unlocked).map(ach => ach.id);
-    localStorage.setItem('retroPixelFlyerAchievements', JSON.stringify(unlockedAchievements));
-  
-    const ownedItems = shopItems.filter(item => item.owned).map(item => item.id);
-    localStorage.setItem('retroPixelFlyerShopItems', JSON.stringify(ownedItems));
-}
-// Инициализация магазина
-function initShop() {
-    shopContent.innerHTML = '';
-    shopItems.forEach(item => {
-        const shopItem = document.createElement('div');
-        shopItem.className = 'shop-item';
-        if (item.owned) {
-            shopItem.innerHTML = `
-                <div class="shop-name">${item.name}</div>
-                <div class="shop-desc">${item.description}</div>
-                <button class="btn-small" data-id="${item.id}" ${currentBird === item.id ? 'disabled' : ''}>${currentBird === item.id ? 'ВЫБРАНО' : 'ВЫБРАТЬ'}</button>
-            `;
-        } else {
-            shopItem.innerHTML = `
-                <div class="shop-name">${item.name}</div>
-                <div class="shop-desc">${item.description}</div>
-                <div class="shop-price">${item.price} 🪙</div>
-                <button class="btn-small" data-id="${item.id}">КУПИТЬ</button>
-            `;
-        }
-        shopContent.appendChild(shopItem);
-    });
-  
-    // Обработчики покупки/выбора
-    shopContent.querySelectorAll('.btn-small').forEach(btn => {
-        btn.addEventListener('click', e => {
-            const id = e.target.dataset.id;
-            const item = shopItems.find(i => i.id === id);
-            if (item.owned) {
-                currentBird = id;
-                initShop();
-                saveGameData();
-            } else if (totalCoins >= item.price) {
-                totalCoins -= item.price;
-                item.owned = true;
-                currentBird = id;
-                coinsCountElement.textContent = totalCoins;
-                initShop();
-                saveGameData();
-            } else {
-                if (tg.showAlert) tg.showAlert('Недостаточно монет!');
-            }
-        });
-        btn.addEventListener('touchend', e => { // Добавлено для mobile Telegram
-            e.preventDefault();
-            btn.click(); // Симулировать click
-        });
-    });
-}
-// Инициализация достижений
-function initAchievements() {
-    achievementsContent.innerHTML = '';
-    achievements.forEach(ach => {
-        const achItem = document.createElement('div');
-        achItem.className = 'achievement-item';
-        achItem.innerHTML = `
-            <div class="achievement-name">${ach.name}</div>
-            <div class="achievement-desc">${ach.description}</div>
-            ${ach.unlocked ? '<div class="achievement-badge">✅</div>' : ''}
-        `;
-        achievementsContent.appendChild(achItem);
-    });
-}
-function checkAchievements() {
-    let updated = false;
-    achievements.forEach(ach => {
-        if (!ach.unlocked && score >= ach.score) {
-            ach.unlocked = true;
-            updated = true;
-            showToast(`Достижение разблокировано: ${ach.name}!`);
-        }
-    });
-    if (updated) {
-        initAchievements();
-        saveGameData();
-    }
-}
-// Функция для показа toast
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.style.display = 'block';
-    setTimeout(() => {
-        toast.style.display = 'none';
-    }, 3000);
-}
-// Инициализация рефералов
-function initReferral() {
-    let userId = 'user_' + Date.now();
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        userId = tg.initDataUnsafe.user.id.toString();
-    }
-  
-    const referralCode = encodeURIComponent(userId).substring(0, 12);
-    const referralLink = `https://t.me/your_bot?start=${referralCode}`;
-    referralLinkInput.value = referralLink;
-  
-    // Проверка реферального кода при запуске
-    if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
-        const refCode = tg.initDataUnsafe.start_param;
-        handleReferral(refCode);
-    }
-}
-function handleReferral(refCode) {
-    let userId = 'user_' + Date.now();
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        userId = tg.initDataUnsafe.user.id.toString();
-    }
-  
-    try {
-        const refUserId = decodeURIComponent(refCode);
-        if (refUserId === userId || refUserId.includes(userId)) return;
-      
-        const processedRefs = JSON.parse(localStorage.getItem('retroPixelFlyerProcessedRefs') || '[]');
-        if (processedRefs.includes(refCode)) return;
-      
-        processedRefs.push(refCode);
-        localStorage.setItem('retroPixelFlyerProcessedRefs', JSON.stringify(processedRefs));
-      
-        const referralData = JSON.parse(localStorage.getItem('retroPixelFlyerReferrals') || '{"count": 0, "bonus": 0}');
-        referralData.count++;
-        referralData.bonus += 10;
-        totalCoins += 10;
-        localStorage.setItem('retroPixelFlyerReferrals', JSON.stringify(referralData));
-        referralsCountElement.textContent = referralData.count;
-        referralsBonusElement.textContent = referralData.bonus;
-        coinsCountElement.textContent = totalCoins;
-        saveGameData();
-      
-        if (tg.showAlert) {
-            tg.showAlert('Вы получили 10 монет за приглашение друга!');
-        }
-    } catch (e) {
-        console.error('Error processing referral:', e);
-    }
-}
-function copyReferralLink() {
-    referralLinkInput.select();
-    referralLinkInput.setSelectionRange(0, 99999);
-  
-    try {
-        navigator.clipboard.writeText(referralLinkInput.value).then(() => {
-            if (tg.showAlert) tg.showAlert('Ссылка скопирована!');
-        }).catch(() => {
-            document.execCommand('copy');
-            if (tg.showAlert) tg.showAlert('Ссылка скопирована!');
-        });
-    } catch (e) {
-        document.execCommand('copy');
-        if (tg.showAlert) tg.showAlert('Ссылка скопирована!');
-    }
-}
-// Инициализация таблицы рекордов
-function initLeaderboard() {
-    leaderboardContent.innerHTML = '';
-  
-    let leaderboard = JSON.parse(localStorage.getItem('retroPixelFlyerLeaderboard') || '[]');
-  
-    leaderboard.sort((a, b) => b.score - a.score);
-  
-    const uniqueLeaderboard = [];
-    const seenScores = new Set();
-    leaderboard.forEach(entry => {
-        if (!seenScores.has(entry.score)) {
-            seenScores.add(entry.score);
-            uniqueLeaderboard.push(entry);
-        }
-    });
-  
-    leaderboard = uniqueLeaderboard.slice(0, 10);
-    localStorage.setItem('retroPixelFlyerLeaderboard', JSON.stringify(leaderboard));
-  
-    if (leaderboard.length === 0) {
-        leaderboardContent.innerHTML = '<div class="leaderboard-empty">Пока нет рекордов<br>Сыграй и установи свой рекорд!</div>';
-        return;
-    }
-  
-    leaderboard.forEach((entry, index) => {
-        const leaderboardItem = document.createElement('div');
-        leaderboardItem.className = 'leaderboard-item';
-        if (entry.score === bestScore) {
-            leaderboardItem.style.borderColor = '#ffd700';
-            leaderboardItem.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.5)';
-        }
-        leaderboardItem.innerHTML = `
-            <div class="leaderboard-rank">${index + 1}</div>
-            <div class="leaderboard-score">${entry.score}</div>
-            <div class="leaderboard-date">${entry.date || 'Сегодня'}</div>
-        `;
-        leaderboardContent.appendChild(leaderboardItem);
-    });
-}
-function addToLeaderboard(newScore) {
-    const date = new Date().toLocaleDateString('ru-RU');
-    let leaderboard = JSON.parse(localStorage.getItem('retroPixelFlyerLeaderboard') || '[]');
-    leaderboard.push({ score: newScore, date });
-    localStorage.setItem('retroPixelFlyerLeaderboard', JSON.stringify(leaderboard));
-    initLeaderboard();
-}
-// Функция поделиться
-function shareGame() {
-    const totalScore = score + coinsCollected;
-    const shareText = `🎮 Я набрал ${totalScore} очков в RETRO PIXEL FLYER!\nПопробуй побить мой рекорд!\nhttps://pump0n.github.io/01-retro-flyer/`;
-  
-    if (navigator.share) {
-        navigator.share({
-            title: 'RETRO PIXEL FLYER',
-            text: shareText
-        }).catch(console.error);
-    } else if (tg.sendData) {
-        tg.sendData(JSON.stringify({
-            action: "share_score",
-            score: totalScore
-        }));
-        if (tg.showAlert) tg.showAlert('Результат отправлен в Telegram!');
-    } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = shareText;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        alert('Результат скопирован в буфер обмена!');
-    }
-}
-// Инициализация игры
+
+// Initialize game
 function initGame() {
-    if (initialized) return; // Предотвращение дублирования
-    initialized = true;
-    loadingScreen.style.opacity = '0';
-    setTimeout(() => loadingScreen.style.display = 'none', 300);
-  
-    resizeCanvas();
-    loadGameData();
-    initShop();
-    initAchievements();
-    initReferral();
-    initLeaderboard();
-    updateSoundToggle();
-    updateSnowToggle();
-    styleMainMenuForNewYear(); // Новогоднее оформление
-    createSnowflakes();
-    updateSnowflakes();
-  
-    // Event listeners для меню с добавлением touchend для mobile
-    const menuButtons = [startBtn, restartBtn, mainMenuBtn, shopBtn, shopBackBtn, achievementsBtn, achievementsBackBtn, referralBtn, referralBackBtn, leaderboardBtn, leaderboardBackBtn, settingsBtn, settingsBackBtn, soundToggle, snowToggle, copyLinkBtn, shareBtn];
-    menuButtons.forEach(btn => {
-        btn.removeEventListener('click', handleButtonClick); // Удаляем предыдущие, если есть
-        btn.addEventListener('click', handleButtonClick);
-        btn.removeEventListener('touchend', handleTouchEnd); // Удаляем предыдущие
-        btn.addEventListener('touchend', handleTouchEnd);
-    });
-    function handleButtonClick(e) {
-        console.log(`Button clicked: ${e.target.id}`); // Debug
-    }
-    function handleTouchEnd(e) {
-        e.preventDefault();
-        e.target.click(); // Симулировать click
-    }
-    // Функциональные слушатели (без дублирования)
-    startBtn.removeEventListener('click', startGame);
-    startBtn.addEventListener('click', startGame);
-    restartBtn.removeEventListener('click', restartGame);
-    restartBtn.addEventListener('click', restartGame);
-    mainMenuBtn.removeEventListener('click', returnToMainMenu);
-    mainMenuBtn.addEventListener('click', returnToMainMenu);
-    shopBtn.removeEventListener('click', openShop);
-    shopBtn.addEventListener('click', openShop);
-    shopBackBtn.removeEventListener('click', closeShop);
-    shopBackBtn.addEventListener('click', closeShop);
-    achievementsBtn.removeEventListener('click', openAchievements);
-    achievementsBtn.addEventListener('click', openAchievements);
-    achievementsBackBtn.removeEventListener('click', closeAchievements);
-    achievementsBackBtn.addEventListener('click', closeAchievements);
-    referralBtn.removeEventListener('click', openReferral);
-    referralBtn.addEventListener('click', openReferral);
-    referralBackBtn.removeEventListener('click', closeReferral);
-    referralBackBtn.addEventListener('click', closeReferral);
-    leaderboardBtn.removeEventListener('click', openLeaderboard);
-    leaderboardBtn.addEventListener('click', openLeaderboard);
-    leaderboardBackBtn.removeEventListener('click', closeLeaderboard);
-    leaderboardBackBtn.addEventListener('click', closeLeaderboard);
-    settingsBtn.removeEventListener('click', openSettings);
-    settingsBtn.addEventListener('click', openSettings);
-    settingsBackBtn.removeEventListener('click', closeSettings);
-    settingsBackBtn.addEventListener('click', closeSettings);
-    soundToggle.removeEventListener('click', toggleSound);
-    soundToggle.addEventListener('click', toggleSound);
-    snowToggle.removeEventListener('click', toggleSnow);
-    snowToggle.addEventListener('click', toggleSnow);
-    copyLinkBtn.removeEventListener('click', copyReferralLink);
-    copyLinkBtn.addEventListener('click', copyReferralLink);
-    shareBtn.removeEventListener('click', shareGame);
-    shareBtn.addEventListener('click', shareGame);
-    function openShop() {
-        mainMenu.classList.remove('active');
-        shopMenu.style.display = 'flex';
-    }
-    function closeShop() {
-        shopMenu.style.display = 'none';
-        mainMenu.classList.add('active');
-    }
-    function openAchievements() {
-        mainMenu.classList.remove('active');
-        achievementsMenu.style.display = 'flex';
-    }
-    function closeAchievements() {
-        achievementsMenu.style.display = 'none';
-        mainMenu.classList.add('active');
-    }
-    function openReferral() {
-        mainMenu.classList.remove('active');
-        referralMenu.style.display = 'flex';
-    }
-    function closeReferral() {
-        referralMenu.style.display = 'none';
-        mainMenu.classList.add('active');
-    }
-    function openLeaderboard() {
-        mainMenu.classList.remove('active');
-        leaderboardMenu.style.display = 'flex';
-    }
-    function closeLeaderboard() {
-        leaderboardMenu.style.display = 'none';
-        mainMenu.classList.add('active');
-    }
-  
-    // Touch/click listeners на body для игры
-    document.body.addEventListener('touchstart', handleInput, { passive: false });
-    document.body.addEventListener('click', handleInput); // Fallback для desktop
-  
-    mainMenu.classList.add('active');
-}
-function handleInput(e) {
-    if (e.type === 'touchstart') e.preventDefault();
-    const now = Date.now();
-    if (now - lastTouchTime < touchCooldown) return;
-    lastTouchTime = now;
-    if (!gameStarted && gameActive) {
-        gameStarted = true;
-        startScreen.style.display = 'none';
-        velocity = jumpPower;
-        if (isSoundOn) jumpSound.play();
-        if (isSoundOn) bgMusic.play();
-    } else if (gameActive) {
-        velocity = jumpPower;
-        if (isSoundOn) jumpSound.play();
-    }
-}
-// Старт игры
-function startGame() {
-    mainMenu.classList.remove('active');
-    startScreen.style.display = 'flex'; // Изменено на flex для центрирования
-    gameActive = true;
+    // Input handlers (click/touch/space for any browser)
+    document.addEventListener('keydown', handleInput);
+    document.addEventListener('click', handleInput);
+    document.addEventListener('touchstart', handleInput, { passive: false });
+
     resetGame();
-    resizeCanvas(); // Принудительный resize для избежания white screen
-    lastTime = performance.now();
-    accumulator = 0; // Reset timestep accumulator
     requestAnimationFrame(gameLoop);
 }
-// Сброс игры
+
+// Handle input (flap or start/restart)
+function handleInput(e) {
+    if (e.type === 'touchstart') e.preventDefault();
+    if (e.type === 'keydown' && e.key !== ' ') return;
+
+    if (gameState === 'start') {
+        gameState = 'playing';
+        velocity = lift;
+        playSound(flapSound);
+        playMusic();
+    } else if (gameState === 'playing') {
+        velocity = lift;
+        playSound(flapSound);
+    } else if (gameState === 'over') {
+        resetGame();
+        gameState = 'playing';
+    }
+}
+
+// Reset game state
 function resetGame() {
-    score = 0;
-    coinsCollected = 0;
     pipes = [];
-    coinsList = [];
+    score = 0;
     birdX = canvas.width / 4;
     birdY = canvas.height / 2;
     velocity = 0;
     bgX = 0;
     fgX = 0;
-    frame = 0;
-    gameStarted = false;
-    cameraY = 0; // Сброс камеры
-    updateScore();
+    frameCount = 0;
+    accumulator = 0;
+    lastTime = performance.now();
+    stopMusic();
 }
-// Цикл игры с fixed timestep для плавности
+
+// Game loop with delta time and fixed timestep
 function gameLoop(timestamp) {
-    console.log('Game loop running'); // Debug для проверки, запускается ли loop
     if (!lastTime) lastTime = timestamp;
-    let delta = (timestamp - lastTime) / 1000; // Delta in seconds
+    let delta = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
+
     accumulator += delta;
     while (accumulator >= fixedStep) {
-        update(fixedStep); // Fixed update
+        update(fixedStep);
         accumulator -= fixedStep;
     }
-    render(); // Render interpolated
-    if (gameActive) {
-        animationFrame = requestAnimationFrame(gameLoop);
-    }
+
+    render();
+    requestAnimationFrame(gameLoop);
 }
-// Update logic (physics, generation)
+
+// Update logic
 function update(dt) {
-    if (!gameStarted) return;
-    velocity += gravity * dt * 60; // Normalize to 60fps
-    birdY += velocity * dt * 60;
-    if (birdY < 0) { // Collision with sky (ceiling)
+    if (gameState !== 'playing') return;
+
+    velocity += gravity / dt; // Apply gravity
+    birdY += velocity * dt * 60; // Normalize movement to 60 FPS
+
+    // Ceiling and floor collision (original: bird can't go above screen, dies on floor)
+    if (birdY < 0) {
         birdY = 0;
         velocity = 0;
     }
-    // Камера следует за птичкой вертикально
-    const targetCameraY = birdY - (canvas.height / 2) + 12; // Центр на птичке (24/2)
-    cameraY += (targetCameraY - cameraY) * cameraFollowSpeed;
-    // Ограничение камеры
-    cameraY = Math.max(0, cameraY); // Не выше верха
-    cameraY = Math.min(cameraY, gameHeight - canvas.height); // Не ниже низа
-    frame++;
-    // Генерация труб/монет заранее (за canvas.width / 2)
-    if (frame % 140 === 0) {
-        const topHeight = Math.floor(Math.random() * (gameHeight - fg.height - gap - 200)) + 100; // Ограничение topHeight для проходимости
-        const bottomY = gameHeight - fg.height; // From ground
-        const bottomHeight = bottomY - gap - topHeight; // Lower height to fill to gap
-        if (bottomHeight > 50) { // Только если bottomHeight достаточен
-            pipes.push({ x: canvas.width + 200, topHeight, bottomHeight, scored: false });
-            if (Math.random() > 0.5) {
-                coinsList.push({ x: canvas.width + 213, y: topHeight + gap / 2, collected: false });
-            }
-        }
-    }
-    // Движение труб
-    pipes.forEach((pipe, index) => {
-        pipe.x -= 2;
-        if (pipe.x + 26 < birdX && !pipe.scored) {
-            score++;
-            pipe.scored = true;
-            updateScore();
-            checkAchievements();
-        }
-        if (collisionDetection(pipe)) {
-            endGame();
-        }
-        if (pipe.x < -26) pipes.splice(index, 1);
-    });
-    // Монеты
-    coinsList.forEach((c, index) => {
-        c.x -= 2;
-        if (!c.collected) {
-            if (Math.abs(c.x - birdX) < 20 && Math.abs(c.y - birdY) < 20) {
-                coinsCollected++;
-                totalCoins++;
-                c.collected = true;
-                if (isSoundOn) coinSound.cloneNode().play();
-                coinsCountElement.textContent = totalCoins;
-            }
-        }
-        if (c.x < -30) coinsList.splice(index, 1);
-    });
-    // Коллизия с землей
-    if (birdY + 45 > gameHeight - fg.height) {
-        endGame();
-    }
-    // Скорости для фона и земли
-    bgX -= 0.5;
-    if (bgX <= -bg.width) bgX += bg.width;
-    fgX -= 2;
-    if (fgX <= -fg.width) fgX += fg.width; // Seamless tile reset
-}
-// Render с камерой
-function render() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    ctx.translate(0, -cameraY); // Смещение камеры
-    // Background
-    drawTiled(bg, bgX, 0, gameHeight - fg.height); // Draw bg to connect to fg
-    if (!gameStarted) {
-        drawBird();
-        ctx.restore();
+    if (birdY + birdHeight > canvas.height - groundHeight) {
+        die();
         return;
     }
-    // Pipes
-    pipes.forEach(pipe => {
-        ctx.drawImage(pipeUp, pipe.x, 0, 69, pipe.topHeight); // Upper from top
-        ctx.drawImage(pipeBottom, pipe.x, gameHeight - fg.height - pipe.bottomHeight, 69, pipe.bottomHeight); // Lower from ground
-    });
-    // Coins
-    coinsList.forEach(c => {
-        if (!c.collected && coin.complete) ctx.drawImage(coin, c.x, c.y, 30, 30);
-    });
-    // Ground
-    drawTiled(fg, fgX, gameHeight - fg.height);
-    drawBird();
-    ctx.restore();
-}
-// Seamless tiling for images (for bg and fg)
-function drawTiled(img, x, y, height = img.height) {
-    if (!img.complete) return;
-    const tileWidth = img.width;
-    let currentX = x % tileWidth;
-    if (currentX > 0) currentX -= tileWidth;
-    while (currentX < canvas.width) {
-        ctx.drawImage(img, currentX, y, tileWidth, height);
-        currentX += tileWidth;
+
+    frameCount++;
+
+    // Generate pipes (original: every ~90-100 frames)
+    if (frameCount % 90 === 0) {
+        const pipeHeight = Math.floor(Math.random() * (canvas.height - groundHeight - pipeGap - 200)) + 100;
+        pipes.push({
+            x: canvas.width,
+            y: pipeHeight - canvas.height, // Offset for top pipe (original positioning)
+            scored: false
+        });
     }
+
+    // Move pipes and check score/collision
+    pipes.forEach((pipe, index) => {
+        pipe.x -= 1.5; // Original pipe speed
+
+        // Score when passing pipe
+        if (pipe.x + pipeWidth < birdX && !pipe.scored) {
+            score++;
+            pipe.scored = true;
+            playSound(scoreSound);
+        }
+
+        // Collision detection (original hitboxes)
+        if (checkCollision(pipe)) {
+            die();
+        }
+
+        // Remove off-screen pipes
+        if (pipe.x + pipeWidth < 0) {
+            pipes.splice(index, 1);
+        }
+    });
+
+    // Background and foreground scrolling (original speeds)
+    bgX -= 0.2; // Slow bg
+    if (bgX <= -bgImg.width) bgX = 0;
+    fgX -= 1.5; // Faster fg
+    if (fgX <= -fgImg.width) fgX = 0;
 }
-function drawBird() {
-    if (bird.complete) {
-        ctx.drawImage(bird, Math.floor(birdX), Math.floor(birdY), 45, 45); // Sub-pixel fix
-    }
-}
-function collisionDetection(pipe) {
-    const birdRight = birdX + 45;
-    const birdBottom = birdY + 45;
-    // Верхняя труба (from top to topHeight)
-    if (birdX < pipe.x + 26 && birdRight > pipe.x &&
-        birdY < pipe.topHeight && birdBottom > 0) {
+
+// Collision check (bird vs pipes)
+function checkCollision(pipe) {
+    const birdRight = birdX + birdWidth;
+    const birdBottom = birdY + birdHeight;
+
+    // Top pipe
+    if (birdRight > pipe.x && birdX < pipe.x + pipeWidth &&
+        birdBottom > 0 && birdY < pipe.y + canvas.height) {
         return true;
     }
-    // Нижняя труба (from ground - bottomHeight to ground)
-    const bottomY = gameHeight - fg.height - pipe.bottomHeight;
-    if (birdX < pipe.x + 26 && birdRight > pipe.x &&
-        birdY < gameHeight - fg.height && birdBottom > bottomY) {
+
+    // Bottom pipe
+    const bottomY = pipe.y + canvas.height + pipeGap;
+    if (birdRight > pipe.x && birdX < pipe.x + pipeWidth &&
+        birdBottom > bottomY && birdY < canvas.height - groundHeight) {
         return true;
     }
+
     return false;
 }
-function endGame() {
-    gameActive = false;
-    cancelAnimationFrame(animationFrame);
-    if (isSoundOn) {
-        hitSound.play().catch(error => console.error('Audio play error:', error)); // Обработка ошибок воспроизведения
+
+// Render
+function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Background
+    ctx.drawImage(bgImg, bgX, 0, canvas.width, canvas.height);
+    ctx.drawImage(bgImg, bgX + bgImg.width, 0, canvas.width, canvas.height); // Tile
+
+    if (gameState === 'playing' || gameState === 'over') {
+        // Pipes
+        pipes.forEach(pipe => {
+            ctx.drawImage(pipeNorthImg, pipe.x, pipe.y, pipeWidth, canvas.height); // Top pipe full height
+            ctx.drawImage(pipeSouthImg, pipe.x, pipe.y + canvas.height + pipeGap, pipeWidth, canvas.height); // Bottom
+        });
+
+        // Foreground (ground)
+        ctx.drawImage(fgImg, fgX, canvas.height - groundHeight);
+        ctx.drawImage(fgImg, fgX + fgImg.width, canvas.height - groundHeight); // Tile
     }
-    if (isSoundOn) bgMusic.pause();
+
+    // Bird (with rotation based on velocity, original feature)
+    ctx.save();
+    ctx.translate(birdX + birdWidth / 2, birdY + birdHeight / 2);
+    ctx.rotate(velocity * 0.05); // Slight rotation for dive/climb
+    ctx.drawImage(birdImg, -birdWidth / 2, -birdHeight / 2, birdWidth, birdHeight);
+    ctx.restore();
+
+    // Score display (original font style)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.font = 'bold 40px Arial';
+    ctx.strokeText(score, canvas.width / 2, 50);
+    ctx.fillText(score, canvas.width / 2, 50);
+
+    // Start screen
+    if (gameState === 'start') {
+        ctx.font = 'bold 30px Arial';
+        ctx.strokeText('Tap to Start', canvas.width / 2 - 100, canvas.height / 2);
+        ctx.fillText('Tap to Start', canvas.width / 2 - 100, canvas.height / 2);
+    }
+
+    // Game over screen
+    if (gameState === 'over') {
+        ctx.font = 'bold 40px Arial';
+        ctx.strokeText('Game Over', canvas.width / 2 - 120, canvas.height / 2 - 50);
+        ctx.fillText('Game Over', canvas.width / 2 - 120, canvas.height / 2 - 50);
+        ctx.font = 'bold 30px Arial';
+        ctx.strokeText(`Score: ${score}`, canvas.width / 2 - 80, canvas.height / 2);
+        ctx.fillText(`Score: ${score}`, canvas.width / 2 - 80, canvas.height / 2);
+        ctx.strokeText(`Best: ${bestScore}`, canvas.width / 2 - 80, canvas.height / 2 + 40);
+        ctx.fillText(`Best: ${bestScore}`, canvas.width / 2 - 80, canvas.height / 2 + 40);
+        ctx.strokeText('Tap to Restart', canvas.width / 2 - 120, canvas.height / 2 + 80);
+        ctx.fillText('Tap to Restart', canvas.width / 2 - 120, canvas.height / 2 + 80);
+    }
+}
+
+// Die function
+function die() {
+    gameState = 'over';
+    playSound(dieSound);
+    stopMusic();
+    if (score > bestScore) {
+        bestScore = score;
+        localStorage.setItem('flappyBestScore', bestScore);
+    }
+}
+
+// Sound helpers (handle browser autoplay policies)
+function playSound(sound) {
+    sound.play().catch(() => {}); // Ignore if blocked
+}
+
+function playMusic() {
+    bgMusic.play().catch(() => {});
+}
+
+function stopMusic() {
+    bgMusic.pause();
     bgMusic.currentTime = 0;
-    coinsEarned = coinsCollected;
-    finalScoreElement.textContent = score;
-    coinsEarnedElement.textContent = coinsEarned;
-    if (score > bestScore) bestScore = score;
-    saveGameData();
-    addToLeaderboard(score);
-    gameOverMenu.style.display = 'flex';
 }
-function restartGame() {
-    gameOverMenu.style.display = 'none';
-    startGame();
-}
-function returnToMainMenu() {
-    gameOverMenu.style.display = 'none';
-    mainMenu.classList.add('active');
-    updateSnowflakes(); // Перезапуск снежинок при возврате в меню
-}
-function updateScore() {
-    scoreElement.textContent = `СЧЕТ: ${score}`;
-    bestScoreElement.textContent = `РЕКОРД: ${bestScore}`;
-}
-// Настройки
-function openSettings() {
-    mainMenu.classList.remove('active');
-    settingsMenu.style.display = 'flex';
-}
-function closeSettings() {
-    settingsMenu.style.display = 'none';
-    mainMenu.classList.add('active');
-}
-function toggleSound() {
-    isSoundOn = !isSoundOn;
-    updateSoundToggle();
-    localStorage.setItem('retroPixelFlyerSound', isSoundOn);
-    if (!isSoundOn && bgMusic.playing) bgMusic.pause();
-}
-function updateSoundToggle() {
-    soundToggle.textContent = isSoundOn ? 'ВКЛ' : 'ВЫКЛ';
-}
-function toggleSnow() {
-    isSoundOn = !isSoundOn;
-    updateSnowToggle();
-    localStorage.setItem('retroPixelFlyerSnow', isSnowOn);
-    updateSnowflakes();
-}
-function updateSnowToggle() {
-    snowToggle.textContent = isSnowOn ? 'СНЕЖИНКИ ВКЛ' : 'СНЕЖИНКИ ВЫКЛ';
-}
-// Запуск
-document.addEventListener('DOMContentLoaded', () => {
-    // Удаление дубликатов start-screen
-    const startScreens = document.querySelectorAll('.start-screen');
-    for (let i = 1; i < startScreens.length; i++) {
-        startScreens[i].remove();
-    }
-  
-    if (!gameLoaded) {
-        setTimeout(() => {
-            if (!gameLoaded) {
-                gameLoaded = true;
-                initGame();
-            }
-        }, 3000);
-    } else {
-        initGame(); // Immediate init if loaded
-    }
-});
